@@ -23,4 +23,4 @@ export const CARD_PRODUCTS: CardProduct[] = [
     description: 'La plus économique',
     popular: true,
   },
-]m
+]

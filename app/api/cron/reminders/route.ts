@@ -1,10 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendBookingReminder } from '@/lib/resend'
 import { NextResponse } from 'next/server'
-import { addHours, isAfter, isBefore } from 'date-fns'
+import { addHours } from 'date-fns'
 
-// This route is called by a cron job every hour (configure in vercel.json)
-// It sends reminders for classes starting in 12-13 hours
+// Runs once per day at 7:00 AM (Vercel Hobby plan limit).
+// Sends reminders for all classes happening in the next 11 to 35 hours,
+// which covers any class scheduled for the same or next day.
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -14,20 +15,12 @@ export async function GET(request: Request) {
   const supabase = await createAdminClient()
 
   const now = new Date()
-  const windowStart = addHours(now, 12)
-  const windowEnd = addHours(now, 13)
+  const windowStart = addHours(now, 11)
+  const windowEnd = addHours(now, 35)
 
-  // Find classes starting in the next 12-13 hours
   const { data: classes, error } = await supabase
     .from('classes')
-    .select(`
-      *,
-      bookings(
-        id,
-        status,
-        user_id
-      )
-    `)
+    .select(`*, bookings(id, status, user_id)`)
     .eq('is_cancelled', false)
     .gte('date_time', windowStart.toISOString())
     .lte('date_time', windowEnd.toISOString())
@@ -39,8 +32,6 @@ export async function GET(request: Request) {
   let sent = 0
 
   for (const yogaClass of classes) {
-    const classDate = new Date(yogaClass.date_time)
-    if (!isAfter(classDate, windowStart) || !isBefore(classDate, windowEnd)) continue
 
     const confirmedBookings = (yogaClass.bookings as Array<{id: string, status: string, user_id: string}>)
       .filter((b) => b.status === 'confirmed')
