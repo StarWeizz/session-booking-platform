@@ -36,7 +36,7 @@ export async function getTotalRemainingSession() {
 
   const now = new Date().toISOString()
   const engagedCount = (upcoming ?? []).filter(
-    (b) => b.class && (b.class as { date_time: string }).date_time > now
+    (b) => b.class && (b.class as unknown as { date_time: string }).date_time > now
   ).length
 
   return Math.max(0, totalOnCards - engagedCount)

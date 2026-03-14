@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import type { SessionCard } from '@/types'
 
-interface CardWithProfile extends SessionCard {
+interface CardWithProfile extends Omit<SessionCard, 'profile'> {
   profile: { full_name: string | null; id: string } | null
 }
 

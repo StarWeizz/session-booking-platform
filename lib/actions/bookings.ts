@@ -81,7 +81,7 @@ export async function bookClass(classId: string) {
 
   const now = new Date().toISOString()
   const engagedCount = (upcomingBookings ?? []).filter(
-    (b) => b.class && (b.class as { date_time: string }).date_time > now
+    (b) => b.class && (b.class as unknown as { date_time: string }).date_time > now
   ).length
 
   if (totalOnCards - engagedCount <= 0) {
