@@ -7,8 +7,12 @@ import { addHours } from 'date-fns'
 // Sends reminders for all classes happening in the next 11 to 35 hours,
 // which covers any class scheduled for the same or next day.
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Vercel injecte automatiquement x-vercel-cron: 1 sur les appels cron
+  // On accepte aussi le Bearer token pour les tests manuels
+  const isVercelCron = request.headers.get('x-vercel-cron') === '1'
+  const isManualCall = request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`
+
+  if (!isVercelCron && !isManualCall) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

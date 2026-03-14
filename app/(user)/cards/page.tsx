@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import SessionCardBadge from '@/components/SessionCardBadge'
 import type { SessionCard } from '@/types'
@@ -25,7 +25,7 @@ const CARD_PRODUCTS = [
   },
 ]
 
-export default function CardsPage() {
+function CardsContent() {
   const searchParams = useSearchParams()
   const success = searchParams.get('success')
   const cancelled = searchParams.get('cancelled')
@@ -69,9 +69,7 @@ export default function CardsPage() {
       {success && (
         <div className="card mb-4 bg-sage/10 border-sage/30 text-center py-5">
           <div className="text-2xl mb-2">🎉</div>
-          <p className="font-medium text-stone-800">
-            Paiement confirmé !
-          </p>
+          <p className="font-medium text-stone-800">Paiement confirmé !</p>
           <p className="text-sm text-stone-500 mt-1">
             Votre carte {type === '10' ? '10 séances' : '20 séances'} a été ajoutée.
           </p>
@@ -165,5 +163,13 @@ export default function CardsPage() {
         Paiement sécurisé par Stripe · Les séances ne sont pas remboursables.
       </p>
     </div>
+  )
+}
+
+export default function CardsPage() {
+  return (
+    <Suspense fallback={<div className="max-w-md mx-auto px-4 pt-10 text-stone-400 text-sm">Chargement…</div>}>
+      <CardsContent />
+    </Suspense>
   )
 }

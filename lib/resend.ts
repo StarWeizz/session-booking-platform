@@ -1,11 +1,19 @@
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import type { Class } from '@/types'
 
-export const resend = new Resend(process.env.RESEND_API_KEY!)
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT ?? '587'),
+  secure: process.env.SMTP_PORT === '465',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+})
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'noreply@votrestudio.fr'
+const FROM = `${process.env.STUDIO_NAME ?? 'Studio Yoga'} <${process.env.SMTP_USER}>`
 const STUDIO_NAME = process.env.STUDIO_NAME ?? 'Studio Yoga'
 
 export async function sendBookingConfirmation({
@@ -21,8 +29,8 @@ export async function sendBookingConfirmation({
     locale: fr,
   })
 
-  return resend.emails.send({
-    from: `${STUDIO_NAME} <${FROM_EMAIL}>`,
+  return transporter.sendMail({
+    from: FROM,
     to,
     subject: `Réservation confirmée — ${dateFormatted}`,
     html: `
@@ -77,8 +85,8 @@ export async function sendBookingReminder({
     locale: fr,
   })
 
-  return resend.emails.send({
-    from: `${STUDIO_NAME} <${FROM_EMAIL}>`,
+  return transporter.sendMail({
+    from: FROM,
     to,
     subject: `Rappel — cours demain ${dateFormatted}`,
     html: `
@@ -134,8 +142,8 @@ export async function sendCancellationEmail({
     locale: fr,
   })
 
-  return resend.emails.send({
-    from: `${STUDIO_NAME} <${FROM_EMAIL}>`,
+  return transporter.sendMail({
+    from: FROM,
     to,
     subject: `Annulation — ${dateFormatted}`,
     html: `
