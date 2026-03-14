@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400&family=Instrument+Sans:wght@400;500;600&display=swap');
+
+@layer base {
+  :root {
+    --color-bg: #FAF8F5;
+    --color-card: #FFFFFF;
+    --color-text: #1C1917;
+    --color-muted: #8C7C68;
+    --color-border: #EDE5D8;
+    --color-terra: #C4715A;
+    --color-sage: #8FA892;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: 'Instrument Sans', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-terra text-white font-medium px-6 py-3.5 rounded-2xl
+           text-base w-full flex items-center justify-center gap-2
+           transition-all duration-200 active:scale-[0.98]
+           hover:bg-terra-dark shadow-terra;
+  }
+
+  .btn-secondary {
+    @apply bg-stone-100 text-stone-800 font-medium px-6 py-3.5 rounded-2xl
+           text-base w-full flex items-center justify-center gap-2
+           transition-all duration-200 active:scale-[0.98]
+           hover:bg-stone-200 border border-stone-200;
+  }
+
+  .btn-ghost {
+    @apply text-stone-600 font-medium px-4 py-2 rounded-xl
+           text-sm transition-all duration-200 hover:bg-stone-100
+           flex items-center gap-2;
+  }
+
+  .card {
+    @apply bg-white rounded-3xl p-5 shadow-warm border border-stone-100;
+  }
+
+  .card-sm {
+    @apply bg-white rounded-2xl p-4 shadow-warm border border-stone-100;
+  }
+
+  .input {
+    @apply w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3.5
+           text-stone-900 placeholder-stone-400 text-base
+           focus:outline-none focus:ring-2 focus:ring-terra/30 focus:border-terra
+           transition-all duration-200;
+  }
+
+  .label {
+    @apply text-xs font-medium text-stone-500 uppercase tracking-wide mb-1.5 block;
+  }
+
+  .badge-terra {
+    @apply inline-flex items-center gap-1 bg-terra/10 text-terra text-xs font-medium px-2.5 py-1 rounded-full;
+  }
+
+  .badge-sage {
+    @apply inline-flex items-center gap-1 bg-sage/15 text-sage-dark text-xs font-medium px-2.5 py-1 rounded-full;
+  }
+
+  .badge-neutral {
+    @apply inline-flex items-center gap-1 bg-stone-100 text-stone-600 text-xs font-medium px-2.5 py-1 rounded-full;
+  }
+}
+
+@layer utilities {
+  .text-display {
+    font-family: 'Fraunces', Georgia, serif;
+  }
+
+  .animate-stagger-1 { animation-delay: 0ms; }
+  .animate-stagger-2 { animation-delay: 80ms; }
+  .animate-stagger-3 { animation-delay: 160ms; }
+  .animate-stagger-4 { animation-delay: 240ms; }
+  .animate-stagger-5 { animation-delay: 320ms; }
+
+  .page-enter {
+    animation: slideUp 0.45s ease-out both;
+  }
+}
+
+/* Mobile tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}

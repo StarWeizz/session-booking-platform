@@ -1,0 +1,91 @@
+<h2>Confirm your signup</h2>
+
+<p>Follow this link to confirm your user:</p>
+<p><a href="{{ .ConfirmationURL }}">Confirm your mail</a></p>
+
+<!--
+  ============================================================
+  Template Supabase — Confirmation d'inscription
+  À coller dans : Dashboard → Authentication → Email Templates → Confirm signup
+  ============================================================
+-->
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmez votre adresse email</title>
+</head>
+<body style="margin:0;padding:0;background-color:#FAF8F5;font-family:Georgia,serif;-webkit-font-smoothing:antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+    style="background-color:#FAF8F5;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+          style="max-width:520px;background-color:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(28,25,23,0.08);">
+
+          <!-- Header bande terracotta -->
+          <tr>
+            <td style="background-color:#C4715A;padding:28px 40px;">
+              <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.7);letter-spacing:0.08em;text-transform:uppercase;">
+                Studio Yoga
+              </p>
+            </td>
+          </tr>
+
+          <!-- Corps -->
+          <tr>
+            <td style="padding:40px 40px 32px;">
+
+              <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#1C1917;line-height:1.2;">
+                Bienvenue 🌿
+              </h1>
+              <p style="margin:0 0 28px;font-size:16px;color:#6B5F50;line-height:1.6;">
+                Merci de vous inscrire. Confirmez votre adresse email pour accéder à votre espace et réserver vos cours.
+              </p>
+
+              <!-- Bouton CTA -->
+              <table cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
+                <tr>
+                  <td align="center">
+                    <a href="{{ .ConfirmationURL }}"
+                      style="display:inline-block;background-color:#C4715A;color:#ffffff;font-family:Georgia,serif;font-size:16px;font-weight:600;text-decoration:none;padding:16px 36px;border-radius:14px;box-shadow:0 4px 16px rgba(196,113,90,0.30);">
+                      Confirmer mon adresse email
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Séparateur -->
+              <table cellpadding="0" cellspacing="0" role="presentation" style="width:100%;margin:28px 0 0;">
+                <tr>
+                  <td style="border-top:1px solid #EDE5D8;padding-top:24px;">
+                    <p style="margin:0;font-size:13px;color:#A89880;line-height:1.6;">
+                      Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :
+                    </p>
+                    <p style="margin:8px 0 0;font-size:12px;color:#C4715A;word-break:break-all;">
+                      {{ .ConfirmationURL }}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#FAF8F5;padding:20px 40px;border-top:1px solid #EDE5D8;">
+              <p style="margin:0;font-size:12px;color:#A89880;text-align:center;line-height:1.6;">
+                Ce lien est valable 1 heure · Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
