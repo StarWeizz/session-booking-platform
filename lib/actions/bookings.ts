@@ -142,7 +142,7 @@ export async function cancelBooking(bookingId: string) {
 
   const { data: booking } = await supabase
     .from('bookings')
-    .select('*, class:classes(*)')
+    .select('id, user_id, class_id, status, payment_method, class:classes(*)')
     .eq('id', bookingId)
     .eq('user_id', user.id)
     .single()
@@ -153,7 +153,8 @@ export async function cancelBooking(bookingId: string) {
   const classDate = new Date(booking.class.date_time)
   const hoursUntilClass = differenceInHours(classDate, new Date())
   // Only lose session if paid by card and less than 24h notice
-  const sessionLost = booking.payment_method === 'card' && hoursUntilClass < 24
+  const isCardPayment = booking.payment_method === 'card'
+  const sessionLost = isCardPayment && hoursUntilClass < 24
 
   // Update booking status
   const { error: cancelError } = await supabase

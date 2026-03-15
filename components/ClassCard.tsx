@@ -13,7 +13,8 @@ interface Props {
 
 export default function ClassCard({ yogaClass, totalSessions }: Props) {
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ success?: boolean; error?: string; waitlist?: boolean } | null>(null)
+  const [result, setResult] = useState<{ success?: boolean; error?: string; waitlist?: boolean; sessionLost?: boolean } | null>(null)
+  const [actionType, setActionType] = useState<'book' | 'cancel' | null>(null)
 
   const date = new Date(yogaClass.date_time)
   const dayName = format(date, 'EEEE', { locale: fr })
@@ -28,6 +29,7 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
   async function handleBook(paymentMethod: 'card' | 'on_site' = 'card') {
     setLoading(true)
     setResult(null)
+    setActionType('book')
     const res = await bookClass(yogaClass.id, paymentMethod)
     setResult(res)
     setLoading(false)
@@ -37,6 +39,7 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
     if (!yogaClass.user_booking) return
     setLoading(true)
     setResult(null)
+    setActionType('cancel')
     const res = await cancelBooking(yogaClass.user_booking.id)
     setResult(res)
     setLoading(false)
@@ -89,9 +92,14 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
           Vous êtes sur la liste d'attente.
         </div>
       )}
-      {result?.success && !hasBooking && (
+      {result?.success && actionType === 'book' && (
         <div className="text-sm text-sage-dark bg-sage/10 rounded-xl px-3 py-2 mb-3">
           Réservation confirmée ! ✓
+        </div>
+      )}
+      {result?.success && actionType === 'cancel' && (
+        <div className="text-sm text-stone-600 bg-stone-50 rounded-xl px-3 py-2 mb-3">
+          Réservation annulée {result.sessionLost ? '(séance déduite)' : ''}
         </div>
       )}
 

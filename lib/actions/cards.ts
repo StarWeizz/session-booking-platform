@@ -27,12 +27,13 @@ export async function getTotalRemainingSession() {
   const cards = await getUserCards()
   const totalOnCards = cards.reduce((sum, card) => sum + card.remaining_sessions, 0)
 
-  // Subtract upcoming confirmed bookings not yet attended (sessions "engaged")
+  // Subtract upcoming confirmed bookings paid by card (sessions "engaged")
   const { data: upcoming } = await supabase
     .from('bookings')
-    .select('id, class:classes(date_time)')
+    .select('id, class:classes(date_time), payment_method')
     .eq('user_id', user.id)
     .eq('status', 'confirmed')
+    .eq('payment_method', 'card')
 
   const now = new Date().toISOString()
   const engagedCount = (upcoming ?? []).filter(
