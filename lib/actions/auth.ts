@@ -6,6 +6,49 @@ import { z } from 'zod'
 
 const emailSchema = z.string().email('Adresse email invalide')
 
+const signUpSchema = z.object({
+  email: z.string().email('Adresse email invalide'),
+  firstName: z.string().min(1, 'Le prénom est requis'),
+  lastName: z.string().min(1, 'Le nom est requis'),
+  phone: z.string().min(1, 'Le téléphone est requis'),
+})
+
+export async function signUpWithMagicLink(formData: FormData) {
+  const rawData = {
+    email: formData.get('email'),
+    firstName: formData.get('firstName'),
+    lastName: formData.get('lastName'),
+    phone: formData.get('phone'),
+  }
+
+  const parse = signUpSchema.safeParse(rawData)
+
+  if (!parse.success) {
+    return { error: parse.error.errors[0].message }
+  }
+
+  const { email, firstName, lastName, phone } = parse.data
+  const full_name = `${firstName} ${lastName}`
+  const supabase = await createClient()
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      data: {
+        full_name,
+        phone,
+      },
+    },
+  })
+
+  if (error) {
+    return { error: 'Impossible d\'envoyer le lien. Veuillez réessayer.' }
+  }
+
+  return { success: true }
+}
+
 export async function signInWithMagicLink(formData: FormData) {
   const rawEmail = formData.get('email')
   const parse = emailSchema.safeParse(rawEmail)

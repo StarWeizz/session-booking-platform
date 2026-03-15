@@ -24,6 +24,7 @@ export async function GET(request: Request) {
           await supabase.from('profiles').insert({
             id: user.id,
             full_name: user.user_metadata?.full_name ?? null,
+            phone: user.user_metadata?.phone ?? null,
             role: 'user',
           })
         }

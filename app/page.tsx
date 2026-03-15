@@ -1,11 +1,18 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { getUser } from '@/lib/actions/auth'
 
 export const metadata: Metadata = {
   title: 'Studio Yoga — Réservez vos cours',
 }
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const user = await getUser()
+
+  if (user) {
+    redirect('/dashboard')
+  }
   return (
     <main className="min-h-screen bg-stone-50 overflow-hidden">
       {/* Background decorative element */}
@@ -82,7 +89,7 @@ export default function LandingPage() {
 
         {/* CTA */}
         <div className="space-y-3 animate-slide-up animate-stagger-4">
-          <Link href="/login" className="btn-primary text-center">
+          <Link href="/signup" className="btn-primary text-center">
             Commencer — c'est gratuit
           </Link>
           <Link href="/login" className="btn-ghost justify-center w-full text-stone-500">
