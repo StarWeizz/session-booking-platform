@@ -25,12 +25,14 @@ export interface Class {
 }
 
 export type BookingStatus = 'confirmed' | 'cancelled' | 'waitlist'
+export type PaymentMethod = 'card' | 'on_site'
 
 export interface Booking {
   id: string
   user_id: string
   class_id: string
   status: BookingStatus
+  payment_method: PaymentMethod
   created_at: string
   // joined
   class?: Class

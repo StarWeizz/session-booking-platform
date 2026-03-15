@@ -25,10 +25,10 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
   const isWaitlisted = yogaClass.user_booking?.status === 'waitlist'
   const isPast = date < new Date()
 
-  async function handleBook() {
+  async function handleBook(paymentMethod: 'card' | 'on_site' = 'card') {
     setLoading(true)
     setResult(null)
-    const res = await bookClass(yogaClass.id)
+    const res = await bookClass(yogaClass.id, paymentMethod)
     setResult(res)
     setLoading(false)
   }
@@ -98,13 +98,24 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
       {!yogaClass.is_cancelled && !isPast && (
         <>
           {hasBooking ? (
-            <button
-              onClick={handleCancel}
-              disabled={loading}
-              className="btn-secondary text-stone-500 !text-sm !py-3"
-            >
-              {loading ? 'En cours…' : 'Annuler ma réservation'}
-            </button>
+            <>
+              {yogaClass.user_booking?.payment_method === 'on_site' && (
+                <div className="text-xs text-stone-500 bg-stone-50 rounded-lg px-3 py-2 mb-2 flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <line x1="2" y1="10" x2="22" y2="10"/>
+                  </svg>
+                  Paiement sur place
+                </div>
+              )}
+              <button
+                onClick={handleCancel}
+                disabled={loading}
+                className="btn-secondary text-stone-500 !text-sm !py-3"
+              >
+                {loading ? 'En cours…' : 'Annuler ma réservation'}
+              </button>
+            </>
           ) : isWaitlisted ? (
             <button
               onClick={handleCancel}
@@ -114,19 +125,24 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
               {loading ? 'En cours…' : "Quitter la liste d\u2019attente"}
             </button>
           ) : (
-            <button
-              onClick={handleBook}
-              disabled={loading || totalSessions === 0}
-              className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-            >
-              {loading
-                ? 'Réservation…'
-                : totalSessions === 0
-                ? 'Aucune séance disponible'
-                : isFull
-                ? 'Liste d\'attente'
-                : 'Réserver'}
-            </button>
+            <div className="flex gap-2">
+              {totalSessions > 0 && (
+                <button
+                  onClick={() => handleBook('card')}
+                  disabled={loading}
+                  className="btn-primary flex-1"
+                >
+                  {loading ? 'Réservation…' : isFull ? 'Liste d\'attente' : 'Réserver'}
+                </button>
+              )}
+              <button
+                onClick={() => handleBook('on_site')}
+                disabled={loading}
+                className={`${totalSessions > 0 ? 'btn-secondary text-stone-700' : 'btn-primary flex-1'} whitespace-nowrap`}
+              >
+                {loading ? 'En cours…' : 'Paiement sur place'}
+              </button>
+            </div>
           )}
         </>
       )}

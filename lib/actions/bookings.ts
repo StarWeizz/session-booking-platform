@@ -13,7 +13,7 @@ export async function getUpcomingClasses() {
     .from('classes')
     .select(`
       *,
-      bookings!left(id, user_id, status)
+      bookings!left(id, user_id, status, payment_method)
     `)
     .eq('is_cancelled', false)
     .gte('date_time', new Date().toISOString())
@@ -23,10 +23,10 @@ export async function getUpcomingClasses() {
   if (error || !classes) return []
 
   return classes.map((c) => {
-    const confirmedBookings = (c.bookings as Array<{id: string, user_id: string, status: string}>)
+    const confirmedBookings = (c.bookings as Array<{id: string, user_id: string, status: string, payment_method: string}>)
       .filter((b) => b.status === 'confirmed')
     const userBooking = user
-      ? (c.bookings as Array<{id: string, user_id: string, status: string}>).find((b) => b.user_id === user.id)
+      ? (c.bookings as Array<{id: string, user_id: string, status: string, payment_method: string}>).find((b) => b.user_id === user.id)
       : undefined
 
     return {
@@ -57,35 +57,38 @@ export async function getUserBookings() {
   return data ?? []
 }
 
-export async function bookClass(classId: string) {
+export async function bookClass(classId: string, paymentMethod: 'card' | 'on_site' = 'card') {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Non authentifié' }
 
-  // Compute effective available sessions (on cards minus upcoming bookings not yet attended)
-  const today = new Date().toISOString().split('T')[0]
-  const { data: cards } = await supabase
-    .from('session_cards')
-    .select('remaining_sessions')
-    .eq('user_id', user.id)
-    .gt('remaining_sessions', 0)
-    .or(`expiry_date.is.null,expiry_date.gte.${today}`)
+  // Only check for available sessions if payment method is 'card'
+  if (paymentMethod === 'card') {
+    // Compute effective available sessions (on cards minus upcoming bookings not yet attended)
+    const today = new Date().toISOString().split('T')[0]
+    const { data: cards } = await supabase
+      .from('session_cards')
+      .select('remaining_sessions')
+      .eq('user_id', user.id)
+      .gt('remaining_sessions', 0)
+      .or(`expiry_date.is.null,expiry_date.gte.${today}`)
 
-  const totalOnCards = (cards ?? []).reduce((sum, c) => sum + c.remaining_sessions, 0)
+    const totalOnCards = (cards ?? []).reduce((sum, c) => sum + c.remaining_sessions, 0)
 
-  const { data: upcomingBookings } = await supabase
-    .from('bookings')
-    .select('id, class:classes(date_time)')
-    .eq('user_id', user.id)
-    .eq('status', 'confirmed')
+    const { data: upcomingBookings } = await supabase
+      .from('bookings')
+      .select('id, class:classes(date_time)')
+      .eq('user_id', user.id)
+      .eq('status', 'confirmed')
 
-  const now = new Date().toISOString()
-  const engagedCount = (upcomingBookings ?? []).filter(
-    (b) => b.class && (b.class as unknown as { date_time: string }).date_time > now
-  ).length
+    const now = new Date().toISOString()
+    const engagedCount = (upcomingBookings ?? []).filter(
+      (b) => b.class && (b.class as unknown as { date_time: string }).date_time > now
+    ).length
 
-  if (totalOnCards - engagedCount <= 0) {
-    return { error: 'Aucune séance disponible sur vos cartes. Achetez une carte pour réserver.' }
+    if (totalOnCards - engagedCount <= 0) {
+      return { error: 'Aucune séance disponible sur vos cartes. Achetez une carte pour réserver.' }
+    }
   }
 
   // Check class capacity
@@ -107,7 +110,7 @@ export async function bookClass(classId: string) {
   const { error: bookingError } = await supabase
     .from('bookings')
     .upsert(
-      { user_id: user.id, class_id: classId, status: newStatus },
+      { user_id: user.id, class_id: classId, status: newStatus, payment_method: paymentMethod },
       { onConflict: 'user_id,class_id' }
     )
 
@@ -149,7 +152,8 @@ export async function cancelBooking(bookingId: string) {
 
   const classDate = new Date(booking.class.date_time)
   const hoursUntilClass = differenceInHours(classDate, new Date())
-  const sessionLost = hoursUntilClass < 24
+  // Only lose session if paid by card and less than 24h notice
+  const sessionLost = booking.payment_method === 'card' && hoursUntilClass < 24
 
   // Update booking status
   const { error: cancelError } = await supabase
@@ -160,7 +164,7 @@ export async function cancelBooking(bookingId: string) {
 
   if (cancelError) return { error: 'Impossible d\'annuler la réservation' }
 
-  // If less than 24h, deduct session from card
+  // If less than 24h and paid by card, deduct session from card
   if (sessionLost) {
     const { data: usage } = await supabase
       .from('session_usage')
