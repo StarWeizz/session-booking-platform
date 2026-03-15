@@ -8,15 +8,40 @@ export async function getUserCards() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const { data, error } = await supabase
+  const { data: cards, error } = await supabase
     .from('session_cards')
     .select('*')
     .eq('user_id', user.id)
     .or(`expiry_date.is.null,expiry_date.gte.${new Date().toISOString().split('T')[0]}`)
     .order('created_at', { ascending: true })
 
-  if (error) return []
-  return data ?? []
+  if (error || !cards) return []
+
+  // Get upcoming bookings paid by card to calculate engaged sessions
+  const { data: upcomingBookings } = await supabase
+    .from('bookings')
+    .select('id, class:classes(date_time), payment_method')
+    .eq('user_id', user.id)
+    .eq('status', 'confirmed')
+    .eq('payment_method', 'card')
+
+  const now = new Date().toISOString()
+  const engagedCount = (upcomingBookings ?? []).filter(
+    (b) => b.class && (b.class as unknown as { date_time: string }).date_time > now
+  ).length
+
+  // Distribute engaged sessions across cards
+  let remainingEngaged = engagedCount
+  const cardsWithAvailable = cards.map((card) => {
+    const deducted = Math.min(card.remaining_sessions, remainingEngaged)
+    remainingEngaged -= deducted
+    return {
+      ...card,
+      remaining_sessions: card.remaining_sessions - deducted
+    }
+  })
+
+  return cardsWithAvailable
 }
 
 export async function getTotalRemainingSession() {

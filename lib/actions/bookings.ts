@@ -135,13 +135,19 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
     .eq('id', user.id)
     .single()
 
-  sendBookingConfirmation({
-    to: user.email!,
-    userName: profile?.full_name ?? user.email!,
-    yogaClass,
-    isWaitlist: newStatus === 'waitlist',
-    paymentMethod,
-  }).catch(console.error)
+  // Send confirmation email (non-blocking, with error handling)
+  if (user.email && process.env.SMTP_HOST) {
+    sendBookingConfirmation({
+      to: user.email,
+      userName: profile?.full_name ?? user.email,
+      yogaClass,
+      isWaitlist: newStatus === 'waitlist',
+      paymentMethod,
+    }).catch((err) => {
+      console.error('Failed to send booking confirmation email:', err)
+      // Don't fail the booking if email fails
+    })
+  }
 
   revalidatePath('/classes')
   revalidatePath('/dashboard')
@@ -239,19 +245,24 @@ export async function cancelBooking(bookingId: string) {
     }
   }
 
-  // Send cancellation email
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .single()
+  // Send cancellation email (non-blocking, with error handling)
+  if (user.email && process.env.SMTP_HOST) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single()
 
-  sendCancellationEmail({
-    to: user.email!,
-    userName: profile?.full_name ?? user.email!,
-    yogaClass,
-    sessionLost,
-  }).catch(console.error)
+    sendCancellationEmail({
+      to: user.email,
+      userName: profile?.full_name ?? user.email,
+      yogaClass,
+      sessionLost,
+    }).catch((err) => {
+      console.error('Failed to send cancellation email:', err)
+      // Don't fail the cancellation if email fails
+    })
+  }
 
   revalidatePath('/classes')
   revalidatePath('/dashboard')
