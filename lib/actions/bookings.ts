@@ -138,20 +138,25 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
   if (user.email) {
     console.log('[BOOKING] Attempting to send confirmation email to:', user.email)
     console.log('[BOOKING] SMTP_HOST configured:', !!process.env.SMTP_HOST)
+    console.log('[BOOKING] Class info:', { title: yogaClass.title, date_time: yogaClass.date_time, location: yogaClass.location })
+    console.log('[BOOKING] Booking status:', newStatus, 'Payment method:', paymentMethod)
 
     if (process.env.SMTP_HOST) {
-      sendBookingConfirmation({
-        to: user.email,
-        userName: profile?.full_name ?? user.email,
-        yogaClass,
-        isWaitlist: newStatus === 'waitlist',
-        paymentMethod,
-      })
-        .then(() => console.log('[BOOKING] Confirmation email sent successfully to:', user.email))
-        .catch((err) => {
-          console.error('[BOOKING] Failed to send confirmation email:', err)
-          // Don't fail the booking if email fails
+      try {
+        const result = await sendBookingConfirmation({
+          to: user.email,
+          userName: profile?.full_name ?? user.email,
+          yogaClass,
+          isWaitlist: newStatus === 'waitlist',
+          paymentMethod,
         })
+        console.log('[BOOKING] Confirmation email sent successfully to:', user.email)
+        console.log('[BOOKING] Email result:', result)
+      } catch (err) {
+        console.error('[BOOKING] Failed to send confirmation email:', err)
+        console.error('[BOOKING] Error details:', JSON.stringify(err, null, 2))
+        // Don't fail the booking if email fails
+      }
     } else {
       console.warn('[BOOKING] SMTP not configured, skipping email')
     }

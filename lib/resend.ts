@@ -29,6 +29,8 @@ export async function sendBookingConfirmation({
   isWaitlist?: boolean
   paymentMethod?: 'card' | 'on_site'
 }) {
+  console.log('[EMAIL] sendBookingConfirmation called', { to, userName, yogaClass: yogaClass.title, isWaitlist, paymentMethod })
+
   const dateFormatted = format(new Date(yogaClass.date_time), "EEEE d MMMM 'à' HH'h'mm", {
     locale: fr,
   })
@@ -45,7 +47,10 @@ export async function sendBookingConfirmation({
     ? 'Annulation gratuite jusqu\'à 24h avant le cours. Passé ce délai, la séance sera déduite.'
     : 'Vous pouvez annuler gratuitement à tout moment.'
 
-  return transporter.sendMail({
+  console.log('[EMAIL] Preparing to send email with subject:', subject)
+
+  try {
+    const result = await transporter.sendMail({
     from: FROM,
     to,
     subject,
@@ -158,7 +163,14 @@ export async function sendBookingConfirmation({
   </table>
 </body>
 </html>`,
-  })
+    })
+
+    console.log('[EMAIL] Booking confirmation email sent successfully to:', to)
+    return result
+  } catch (err) {
+    console.error('[EMAIL] Failed to send booking confirmation:', err)
+    throw err
+  }
 }
 
 export async function sendBookingReminder({
