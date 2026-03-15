@@ -62,6 +62,18 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Non authentifié' }
 
+  // Check if user has already cancelled this class - prevent re-booking
+  const { data: existingBooking } = await supabase
+    .from('bookings')
+    .select('status')
+    .eq('user_id', user.id)
+    .eq('class_id', classId)
+    .single()
+
+  if (existingBooking?.status === 'cancelled') {
+    return { error: 'Vous avez déjà annulé ce cours. Vous ne pouvez pas le réserver à nouveau.' }
+  }
+
   // Only check for available sessions if payment method is 'card'
   if (paymentMethod === 'card') {
     // Compute effective available sessions (on cards minus upcoming bookings not yet attended)
@@ -115,7 +127,6 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
     )
 
   if (bookingError) return { error: 'Impossible de créer la réservation' }
-  if (newStatus === 'waitlist') return { waitlist: true }
 
   // Send confirmation email (non-blocking)
   const { data: profile } = await supabase
@@ -128,10 +139,14 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
     to: user.email!,
     userName: profile?.full_name ?? user.email!,
     yogaClass,
+    isWaitlist: newStatus === 'waitlist',
+    paymentMethod,
   }).catch(console.error)
 
   revalidatePath('/classes')
   revalidatePath('/dashboard')
+
+  if (newStatus === 'waitlist') return { waitlist: true }
   return { success: true }
 }
 

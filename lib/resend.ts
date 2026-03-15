@@ -20,19 +20,46 @@ export async function sendBookingConfirmation({
   to,
   userName,
   yogaClass,
+  isWaitlist = false,
+  paymentMethod = 'card',
 }: {
   to: string
   userName: string
   yogaClass: Class
+  isWaitlist?: boolean
+  paymentMethod?: 'card' | 'on_site'
 }) {
   const dateFormatted = format(new Date(yogaClass.date_time), "EEEE d MMMM 'à' HH'h'mm", {
     locale: fr,
   })
 
+  const subject = isWaitlist
+    ? `Liste d'attente — ${dateFormatted}`
+    : `Réservation confirmée — ${dateFormatted}`
+
+  const statusMessage = isWaitlist
+    ? `vous êtes sur la liste d'attente`
+    : `votre réservation est confirmée ✓`
+
+  const paymentNote = paymentMethod === 'on_site'
+    ? `<p style="font-size:14px;color:#6B5F50;background:#FAF8F5;padding:12px;border-radius:8px;margin:16px 0;">
+        💳 <strong>Paiement sur place</strong> — Vous réglerez votre séance directement au studio.
+      </p>`
+    : ''
+
+  const cancellationNote = paymentMethod === 'card'
+    ? `<p class="note">
+        <strong>Politique d'annulation :</strong> annulation gratuite jusqu'à 24h avant le cours.<br>
+        Passé ce délai, la séance sera considérée comme utilisée.
+      </p>`
+    : `<p class="note">
+        <strong>Politique d'annulation :</strong> vous pouvez annuler gratuitement à tout moment.
+      </p>`
+
   return transporter.sendMail({
     from: FROM,
     to,
-    subject: `Réservation confirmée — ${dateFormatted}`,
+    subject,
     html: `
 <!DOCTYPE html>
 <html>
@@ -45,14 +72,15 @@ export async function sendBookingConfirmation({
     .detail { background: #FAF8F5; border-radius: 12px; padding: 20px; margin: 24px 0; }
     .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #8C7C68; }
     .value { font-size: 18px; font-weight: 600; margin-top: 4px; }
-    .note { font-size: 14px; color: #6B5F50; line-height: 1.6; border-left: 3px solid #C4715A; padding-left: 16px; }
+    .note { font-size: 14px; color: #6B5F50; line-height: 1.6; border-left: 3px solid ${isWaitlist ? '#8C7C68' : '#C4715A'}; padding-left: 16px; }
     .footer { margin-top: 32px; font-size: 13px; color: #A89880; text-align: center; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="title">${STUDIO_NAME}</div>
-    <h1 style="font-size:20px;margin:0 0 24px">Bonjour ${userName},<br>votre réservation est confirmée ✓</h1>
+    <h1 style="font-size:20px;margin:0 0 24px">Bonjour ${userName},<br>${statusMessage}</h1>
+    ${isWaitlist ? '<p style="color:#6B5F50;font-size:14px;">Le cours est complet, mais vous êtes sur la liste d\'attente. Vous serez notifié si une place se libère.</p>' : ''}
     <div class="detail">
       <div class="label">Cours</div>
       <div class="value">${yogaClass.title}</div>
@@ -61,10 +89,8 @@ export async function sendBookingConfirmation({
       <div class="label" style="margin-top:16px">Lieu</div>
       <div class="value">${yogaClass.location}</div>
     </div>
-    <p class="note">
-      <strong>Politique d'annulation :</strong> annulation gratuite jusqu'à 24h avant le cours.<br>
-      Passé ce délai, la séance sera considérée comme utilisée.
-    </p>
+    ${paymentNote}
+    ${!isWaitlist ? cancellationNote : ''}
     <div class="footer">${STUDIO_NAME} · À bientôt sur le tapis !</div>
   </div>
 </body>
