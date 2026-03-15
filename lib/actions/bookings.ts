@@ -142,7 +142,7 @@ export async function cancelBooking(bookingId: string) {
 
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, user_id, class_id, status, payment_method, class:classes(*)')
+    .select('*, class:classes(*)')
     .eq('id', bookingId)
     .eq('user_id', user.id)
     .single()
@@ -150,7 +150,8 @@ export async function cancelBooking(bookingId: string) {
   if (!booking) return { error: 'Réservation introuvable' }
   if (booking.status === 'cancelled') return { error: 'Déjà annulée' }
 
-  const classDate = new Date(booking.class.date_time)
+  const yogaClass = booking.class as any
+  const classDate = new Date(yogaClass.date_time)
   const hoursUntilClass = differenceInHours(classDate, new Date())
   // Only lose session if paid by card and less than 24h notice
   const isCardPayment = booking.payment_method === 'card'
@@ -233,7 +234,7 @@ export async function cancelBooking(bookingId: string) {
   sendCancellationEmail({
     to: user.email!,
     userName: profile?.full_name ?? user.email!,
-    yogaClass: booking.class,
+    yogaClass,
     sessionLost,
   }).catch(console.error)
 
