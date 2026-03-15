@@ -128,25 +128,33 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
 
   if (bookingError) return { error: 'Impossible de créer la réservation' }
 
-  // Send confirmation email (non-blocking)
+  // Send confirmation email (non-blocking, with error handling)
   const { data: profile } = await supabase
     .from('profiles')
     .select('full_name')
     .eq('id', user.id)
     .single()
 
-  // Send confirmation email (non-blocking, with error handling)
-  if (user.email && process.env.SMTP_HOST) {
-    sendBookingConfirmation({
-      to: user.email,
-      userName: profile?.full_name ?? user.email,
-      yogaClass,
-      isWaitlist: newStatus === 'waitlist',
-      paymentMethod,
-    }).catch((err) => {
-      console.error('Failed to send booking confirmation email:', err)
-      // Don't fail the booking if email fails
-    })
+  if (user.email) {
+    console.log('[BOOKING] Attempting to send confirmation email to:', user.email)
+    console.log('[BOOKING] SMTP_HOST configured:', !!process.env.SMTP_HOST)
+
+    if (process.env.SMTP_HOST) {
+      sendBookingConfirmation({
+        to: user.email,
+        userName: profile?.full_name ?? user.email,
+        yogaClass,
+        isWaitlist: newStatus === 'waitlist',
+        paymentMethod,
+      })
+        .then(() => console.log('[BOOKING] Confirmation email sent successfully to:', user.email))
+        .catch((err) => {
+          console.error('[BOOKING] Failed to send confirmation email:', err)
+          // Don't fail the booking if email fails
+        })
+    } else {
+      console.warn('[BOOKING] SMTP not configured, skipping email')
+    }
   }
 
   revalidatePath('/classes')
