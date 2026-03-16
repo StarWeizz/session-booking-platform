@@ -30,10 +30,32 @@ export default function AdminCardsPage() {
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
+    const userId = formData.get('userId') as string
+    const cardType = formData.get('cardType') as '1' | '10' | '20'
+    const expiryDate = formData.get('expiryDate') as string || undefined
+
+    // Validate for multi-session cards only
+    if (cardType !== '1') {
+      try {
+        const res = await fetch(`/api/admin/cards/validate?userId=${userId}&cardType=${cardType}`)
+        const validation = await res.json()
+
+        if (validation.hasActiveCard) {
+          const confirmed = confirm(
+            `⚠️ Ce client a déjà une carte active avec ${validation.remainingSessions} séance${validation.remainingSessions > 1 ? 's' : ''} restante${validation.remainingSessions > 1 ? 's' : ''}.\n\n` +
+            `Créer quand même une carte de ${cardType} séances ?`
+          )
+          if (!confirmed) return
+        }
+      } catch (error) {
+        console.error('Validation error:', error)
+      }
+    }
+
     const result = await createCardManually({
-      userId: formData.get('userId') as string,
-      cardType: formData.get('cardType') as '10' | '20',
-      expiryDate: formData.get('expiryDate') as string || undefined,
+      userId,
+      cardType,
+      expiryDate,
     })
     if (result.success) {
       setShowForm(false)
@@ -75,6 +97,7 @@ export default function AdminCardsPage() {
             <div>
               <label className="label">Type de carte</label>
               <select name="cardType" className="input">
+                <option value="1">1 séance</option>
                 <option value="10">10 séances</option>
                 <option value="20">20 séances</option>
               </select>

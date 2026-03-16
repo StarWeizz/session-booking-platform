@@ -61,7 +61,7 @@ export interface SessionUsage {
 }
 
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded'
-export type CardType = '10' | '20'
+export type CardType = '1' | '10' | '20'
 
 export interface Payment {
   id: string

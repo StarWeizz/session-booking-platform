@@ -3,27 +3,8 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import SessionCardBadge from '@/components/SessionCardBadge'
-import type { SessionCard } from '@/types'
-
-const CARD_PRODUCTS = [
-  {
-    type: '10' as const,
-    label: 'Carte 10 séances',
-    sessions: 10,
-    price: 120,
-    description: 'Parfaite pour commencer',
-    pricePerSession: '12€ / séance',
-  },
-  {
-    type: '20' as const,
-    label: 'Carte 20 séances',
-    sessions: 20,
-    price: 220,
-    description: 'La plus économique',
-    pricePerSession: '11€ / séance',
-    popular: true,
-  },
-]
+import { CARD_PRODUCTS } from '@/lib/stripe'
+import type { SessionCard, CardType } from '@/types'
 
 function CardsContent() {
   const searchParams = useSearchParams()
@@ -33,13 +14,26 @@ function CardsContent() {
 
   const [cards, setCards] = useState<SessionCard[]>([])
   const [loading, setLoading] = useState<string | null>(null)
+  const [hasActiveCard, setHasActiveCard] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/user/cards').then((r) => r.json()).then(setCards).catch(console.error)
+    fetch('/api/user/cards')
+      .then((r) => r.json())
+      .then((data) => {
+        setCards(data)
+        // Check if user has active multi-session card (10 or 20 sessions)
+        const activeMulti = data.some(
+          (c: SessionCard) => c.remaining_sessions > 0 && c.total_sessions >= 10
+        )
+        setHasActiveCard(activeMulti)
+      })
+      .catch(console.error)
   }, [success])
 
-  async function handlePurchase(cardType: '10' | '20') {
+  async function handlePurchase(cardType: CardType) {
     setLoading(cardType)
+    setError(null)
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -47,6 +41,11 @@ function CardsContent() {
         body: JSON.stringify({ cardType }),
       })
       const data = await res.json()
+      if (!res.ok) {
+        setError(data.details || data.error)
+        setLoading(null)
+        return
+      }
       if (data.url) window.location.href = data.url
     } catch {
       setLoading(null)
@@ -71,7 +70,9 @@ function CardsContent() {
           <div className="text-2xl mb-2">🎉</div>
           <p className="font-medium text-stone-800">Paiement confirmé !</p>
           <p className="text-sm text-stone-500 mt-1">
-            Votre carte {type === '10' ? '10 séances' : '20 séances'} a été ajoutée.
+            {type === '1'
+              ? 'Votre séance unique a été ajoutée.'
+              : `Votre carte ${type} séances a été ajoutée.`}
           </p>
         </div>
       )}
@@ -95,13 +96,72 @@ function CardsContent() {
         </div>
       )}
 
-      {/* Purchase options */}
-      <div className="animate-slide-up animate-stagger-2">
+      {/* Single session option */}
+      {CARD_PRODUCTS.filter(p => p.type === '1').map((product) => (
+        <div key={product.type} className="mb-8 animate-slide-up animate-stagger-2">
+          <h2 className="text-sm font-medium text-stone-500 uppercase tracking-wide mb-3">
+            Séance unique
+          </h2>
+          <div className="card">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="font-semibold text-stone-900">{product.label}</div>
+                <div className="text-sm text-stone-500 mt-0.5">{product.description}</div>
+              </div>
+              <div className="text-right flex-shrink-0 ml-3">
+                <div className="text-display text-2xl font-semibold text-stone-900">
+                  {product.price}€
+                </div>
+                <div className="text-xs text-stone-400">15€ / séance</div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => handlePurchase(product.type)}
+              disabled={loading !== null}
+              className="btn-secondary disabled:opacity-60"
+            >
+              {loading === product.type ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  Redirection…
+                </>
+              ) : (
+                `Acheter — ${product.price}€`
+              )}
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {/* Multi-session cards */}
+      <div className="animate-slide-up animate-stagger-3">
         <h2 className="text-sm font-medium text-stone-500 uppercase tracking-wide mb-3">
-          Acheter une carte
+          Cartes de séances
         </h2>
+
+        {/* Card limit warning */}
+        {hasActiveCard && (
+          <div className="card mb-4 bg-blue-50 border-blue-200">
+            <p className="text-sm text-stone-700 font-medium mb-1">Limite de carte atteinte</p>
+            <p className="text-xs text-stone-500">
+              Utilisez vos séances restantes avant d'acheter une nouvelle carte.
+            </p>
+          </div>
+        )}
+
+        {/* Validation error */}
+        {error && (
+          <div className="card mb-4 bg-red-50 border-red-200">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
         <div className="space-y-3">
-          {CARD_PRODUCTS.map((product) => (
+          {CARD_PRODUCTS.filter(p => p.type !== '1').map((product) => (
             <div
               key={product.type}
               className={`card relative ${product.popular ? 'border-terra/30 ring-1 ring-terra/20' : ''}`}
@@ -121,7 +181,7 @@ function CardsContent() {
                   <div className="text-display text-2xl font-semibold text-stone-900">
                     {product.price}€
                   </div>
-                  <div className="text-xs text-stone-400">{product.pricePerSession}</div>
+                  <div className="text-xs text-stone-400">{product.sessions === 10 ? '12€' : '11€'} / séance</div>
                 </div>
               </div>
 
@@ -139,7 +199,7 @@ function CardsContent() {
 
               <button
                 onClick={() => handlePurchase(product.type)}
-                disabled={loading !== null}
+                disabled={loading !== null || hasActiveCard}
                 className={`${product.popular ? 'btn-primary' : 'btn-secondary'} disabled:opacity-60`}
               >
                 {loading === product.type ? (
@@ -150,6 +210,8 @@ function CardsContent() {
                     </svg>
                     Redirection…
                   </>
+                ) : hasActiveCard ? (
+                  'Carte active existante'
                 ) : (
                   `Acheter — ${product.price}€`
                 )}

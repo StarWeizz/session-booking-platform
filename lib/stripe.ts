@@ -7,6 +7,14 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export const CARD_PRODUCTS: CardProduct[] = [
   {
+    type: '1',
+    label: 'Séance unique',
+    sessions: 1,
+    price: 15,
+    priceId: process.env.STRIPE_PRICE_1_SESSION!,
+    description: 'Parfait pour essayer',
+  },
+  {
     type: '10',
     label: 'Carte 10 séances',
     sessions: 10,

@@ -1,7 +1,9 @@
 import { stripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/server'
+import { validateCardPurchase } from '@/lib/actions/cards'
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
+import type { CardType } from '@/types'
 
 export async function POST(request: Request) {
   const body = await request.text()
@@ -23,6 +25,20 @@ export async function POST(request: Request) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     const { userId, cardType, sessions } = session.metadata!
+
+    // Defensive validation check - log if limit is exceeded
+    // Don't block since payment is already completed
+    const validationError = await validateCardPurchase(cardType as CardType, userId)
+    if (validationError) {
+      console.error('⚠️ Webhook validation failed:', {
+        userId,
+        cardType,
+        error: validationError.error,
+        details: validationError.details,
+        sessionId: session.id,
+      })
+      // Continue anyway since payment is done
+    }
 
     const supabase = await createAdminClient()
 

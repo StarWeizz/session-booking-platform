@@ -77,7 +77,12 @@ export async function createCardManually({
   expiryDate?: string
 }) {
   const supabase = await createClient()
-  const sessions = cardType === '10' ? 10 : 20
+  const sessionsMap: Record<CardType, number> = {
+    '1': 1,
+    '10': 10,
+    '20': 20,
+  }
+  const sessions = sessionsMap[cardType]
 
   const { error } = await supabase.from('session_cards').insert({
     user_id: userId,
@@ -106,4 +111,60 @@ export async function updateCardSessions({
 
   if (error) return { error: 'Impossible de modifier la carte' }
   return { success: true }
+}
+
+/**
+ * Find an active multi-session card (10 or 20 sessions) for a user
+ * Returns the card if found, null otherwise
+ */
+export async function getActiveMultiSessionCard(userId?: string) {
+  const supabase = await createClient()
+
+  // If no userId provided, get current user
+  let targetUserId = userId
+  if (!targetUserId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    targetUserId = user.id
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const { data: cards } = await supabase
+    .from('session_cards')
+    .select('*')
+    .eq('user_id', targetUserId)
+    .gte('remaining_sessions', 1)
+    .in('total_sessions', [10, 20])
+    .or(`expiry_date.is.null,expiry_date.gte.${today}`)
+    .order('created_at', { ascending: true })
+    .limit(1)
+
+  return cards && cards.length > 0 ? cards[0] : null
+}
+
+/**
+ * Validate if a user can purchase a new card
+ * Returns null if purchase is allowed, or an error object if blocked
+ */
+export async function validateCardPurchase(
+  cardType: CardType,
+  userId?: string
+): Promise<{ error: string; details: string } | null> {
+  // Single sessions are always allowed
+  if (cardType === '1') {
+    return null
+  }
+
+  // Check for existing active multi-session card
+  const activeCard = await getActiveMultiSessionCard(userId)
+
+  if (activeCard) {
+    return {
+      error: 'Limite de carte atteinte',
+      details: `Vous avez déjà une carte active avec ${activeCard.remaining_sessions} séance${activeCard.remaining_sessions > 1 ? 's' : ''} restante${activeCard.remaining_sessions > 1 ? 's' : ''}. Utilisez vos séances avant d'acheter une nouvelle carte.`,
+    }
+  }
+
+  return null
 }

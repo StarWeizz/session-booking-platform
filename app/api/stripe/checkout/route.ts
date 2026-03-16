@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { stripe, CARD_PRODUCTS } from '@/lib/stripe'
+import { validateCardPurchase } from '@/lib/actions/cards'
 import { NextResponse } from 'next/server'
 import type { CardType } from '@/types'
 
@@ -16,6 +17,18 @@ export async function POST(request: Request) {
 
   if (!product) {
     return NextResponse.json({ error: 'Produit invalide' }, { status: 400 })
+  }
+
+  // Validate card purchase (check for existing active multi-session card)
+  const validationError = await validateCardPurchase(cardType, user.id)
+  if (validationError) {
+    return NextResponse.json(
+      {
+        error: validationError.error,
+        details: validationError.details,
+      },
+      { status: 403 }
+    )
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!
