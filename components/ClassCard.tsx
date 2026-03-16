@@ -10,9 +10,10 @@ interface Props {
   yogaClass: Class
   totalSessions: number
   isTrialEligible?: boolean
+  bookingCounts?: { onSite: number; card: number; trial: number }
 }
 
-export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = false }: Props) {
+export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = false, bookingCounts }: Props) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ success?: boolean; error?: string; waitlist?: boolean; sessionLost?: boolean } | null>(null)
   const [actionType, setActionType] = useState<'book' | 'cancel' | null>(null)
@@ -26,6 +27,13 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
   const hasBooking = !!yogaClass.user_booking && yogaClass.user_booking.status === 'confirmed'
   const isWaitlisted = yogaClass.user_booking?.status === 'waitlist'
   const isPast = date < new Date()
+
+  // Check booking limits
+  const onSiteLimit = bookingCounts ? bookingCounts.onSite >= 2 : false
+  const cardLimit = bookingCounts ? bookingCounts.card >= 4 : false
+  const twoWeeksFromNow = new Date()
+  twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14)
+  const isBeyondTwoWeeks = date > twoWeeksFromNow
 
   async function handleBook(paymentMethod: 'card' | 'on_site' | 'trial' = 'card') {
     setLoading(true)
@@ -87,6 +95,22 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
         <div className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2 mb-3">
           {result.error}
         </div>
+      )}
+      {!hasBooking && !isWaitlisted && !isPast && (
+        <>
+          {onSiteLimit && (
+            <div className="text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mb-3">
+              Limite atteinte : 2 réservations max en paiement sur place
+            </div>
+          )}
+          {(cardLimit || isBeyondTwoWeeks) && totalSessions > 0 && !isTrialEligible && (
+            <div className="text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mb-3">
+              {cardLimit && 'Limite atteinte : 4 réservations max avec carte'}
+              {cardLimit && isBeyondTwoWeeks && ' · '}
+              {isBeyondTwoWeeks && 'Réservation limitée à 2 semaines à l\'avance'}
+            </div>
+          )}
+        </>
       )}
       {result?.waitlist && (
         <div className="text-sm text-stone-600 bg-stone-50 rounded-xl px-3 py-2 mb-3">
@@ -154,18 +178,18 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
               ) : totalSessions > 0 ? (
                 <button
                   onClick={() => handleBook('card')}
-                  disabled={loading}
-                  className="btn-primary flex-1"
+                  disabled={loading || cardLimit || isBeyondTwoWeeks}
+                  className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Réservation…' : isFull ? 'Liste d\'attente' : 'Réserver'}
+                  {loading ? 'Réservation…' : cardLimit ? 'Limite atteinte' : isBeyondTwoWeeks ? 'Trop tôt' : isFull ? 'Liste d\'attente' : 'Réserver'}
                 </button>
               ) : null}
               <button
                 onClick={() => handleBook('on_site')}
-                disabled={loading}
-                className={`${(isTrialEligible || totalSessions > 0) ? 'btn-secondary text-stone-700' : 'btn-primary flex-1'} whitespace-nowrap`}
+                disabled={loading || onSiteLimit}
+                className={`${(isTrialEligible || totalSessions > 0) ? 'btn-secondary text-stone-700' : 'btn-primary flex-1'} whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {loading ? 'En cours…' : 'Paiement sur place'}
+                {loading ? 'En cours…' : onSiteLimit ? 'Limite atteinte' : 'Paiement sur place'}
               </button>
             </div>
           )}

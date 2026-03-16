@@ -1,4 +1,4 @@
-import { getUpcomingClasses, isEligibleForTrial } from '@/lib/actions/bookings'
+import { getUpcomingClasses, isEligibleForTrial, getUpcomingBookingsCounts } from '@/lib/actions/bookings'
 import { getTotalRemainingSession } from '@/lib/actions/cards'
 import ClassCard from '@/components/ClassCard'
 import { format } from 'date-fns'
@@ -20,10 +20,11 @@ function groupByDate(classes: Awaited<ReturnType<typeof getUpcomingClasses>>) {
 }
 
 export default async function ClassesPage() {
-  const [classes, totalSessions, isTrialEligible] = await Promise.all([
+  const [classes, totalSessions, isTrialEligible, bookingCounts] = await Promise.all([
     getUpcomingClasses(),
     getTotalRemainingSession(),
     isEligibleForTrial(),
+    getUpcomingBookingsCounts(),
   ])
 
   const groups = groupByDate(classes)
@@ -45,6 +46,24 @@ export default async function ClassesPage() {
           )}
         </p>
       </div>
+
+      {/* Booking limits info */}
+      {(bookingCounts.onSite > 0 || bookingCounts.card > 0) && (
+        <div className="mb-6 card bg-blue-50 border-blue-200 page-enter" style={{ animationDelay: '100ms' }}>
+          <p className="text-sm text-stone-700 font-medium mb-2">📋 Vos réservations en cours</p>
+          <div className="text-xs text-stone-600 space-y-1">
+            {bookingCounts.card > 0 && (
+              <p>• Avec carte : <strong>{bookingCounts.card}/4</strong> réservations (max 2 semaines à l'avance)</p>
+            )}
+            {bookingCounts.onSite > 0 && (
+              <p>• Paiement sur place : <strong>{bookingCounts.onSite}/2</strong> réservations</p>
+            )}
+            {bookingCounts.trial > 0 && (
+              <p>• Séance d'essai : <strong>1</strong> réservation</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Classes grouped by date */}
       {classes.length === 0 ? (
@@ -77,6 +96,7 @@ export default async function ClassesPage() {
                       yogaClass={c as Parameters<typeof ClassCard>[0]['yogaClass']}
                       totalSessions={totalSessions}
                       isTrialEligible={isTrialEligible}
+                      bookingCounts={bookingCounts}
                     />
                   ))}
                 </div>

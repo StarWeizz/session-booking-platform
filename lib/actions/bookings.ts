@@ -85,10 +85,62 @@ export async function isEligibleForTrial(userId?: string) {
   return !bookings || bookings.length === 0
 }
 
+/**
+ * Get count of upcoming bookings by payment method
+ * Returns object with counts for each payment method
+ */
+export async function getUpcomingBookingsCounts(userId?: string) {
+  const supabase = await createClient()
+
+  let targetUserId = userId
+  if (!targetUserId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { onSite: 0, card: 0, trial: 0 }
+    targetUserId = user.id
+  }
+
+  const now = new Date().toISOString()
+
+  const { data: bookings } = await supabase
+    .from('bookings')
+    .select('payment_method, class:classes(date_time)')
+    .eq('user_id', targetUserId)
+    .eq('status', 'confirmed')
+    .gte('classes.date_time', now)
+
+  if (!bookings) return { onSite: 0, card: 0, trial: 0 }
+
+  const counts = {
+    onSite: 0,
+    card: 0,
+    trial: 0,
+  }
+
+  for (const booking of bookings) {
+    if (booking.class && (booking.class as unknown as { date_time: string }).date_time > now) {
+      if (booking.payment_method === 'on_site') counts.onSite++
+      else if (booking.payment_method === 'card') counts.card++
+      else if (booking.payment_method === 'trial') counts.trial++
+    }
+  }
+
+  return counts
+}
+
 export async function bookClass(classId: string, paymentMethod: 'card' | 'on_site' | 'trial' = 'card') {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Non authentifié' }
+
+  // Get the class info first for date validation and capacity check
+  const { data: yogaClass } = await supabase
+    .from('classes')
+    .select('*, bookings!left(id, status)')
+    .eq('id', classId)
+    .single()
+
+  if (!yogaClass) return { error: 'Cours introuvable' }
+  if (yogaClass.is_cancelled) return { error: 'Ce cours est annulé' }
 
   // Check if user has already cancelled this class - prevent re-booking
   const { data: existingBooking } = await supabase
@@ -107,6 +159,35 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
     const eligible = await isEligibleForTrial(user.id)
     if (!eligible) {
       return { error: 'Vous avez déjà utilisé votre séance d\'essai gratuite.' }
+    }
+  }
+
+  // Check booking limits based on payment method
+  const bookingCounts = await getUpcomingBookingsCounts(user.id)
+
+  if (paymentMethod === 'on_site') {
+    // On-site payment: max 2 bookings in advance
+    if (bookingCounts.onSite >= 2) {
+      return { error: 'Limite atteinte : vous ne pouvez réserver que 2 cours maximum en paiement sur place.' }
+    }
+  } else if (paymentMethod === 'card') {
+    // Card payment: max 4 bookings in advance
+    if (bookingCounts.card >= 4) {
+      return { error: 'Limite atteinte : vous ne pouvez réserver que 4 séances maximum à l\'avance.' }
+    }
+
+    // Card payment: max 2 weeks in advance
+    const classDate = new Date(yogaClass.date_time)
+    const twoWeeksFromNow = new Date()
+    twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14)
+
+    if (classDate > twoWeeksFromNow) {
+      return { error: 'Vous ne pouvez réserver que 2 semaines à l\'avance maximum avec une carte.' }
+    }
+  } else if (paymentMethod === 'trial') {
+    // Trial: same limit as on-site (2 bookings max, but they should only have 1 trial)
+    if (bookingCounts.trial >= 1) {
+      return { error: 'Vous avez déjà une séance d\'essai en cours.' }
     }
   }
 
@@ -140,15 +221,6 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
   }
 
   // Check class capacity
-  const { data: yogaClass } = await supabase
-    .from('classes')
-    .select('*, bookings!left(id, status)')
-    .eq('id', classId)
-    .single()
-
-  if (!yogaClass) return { error: 'Cours introuvable' }
-  if (yogaClass.is_cancelled) return { error: 'Ce cours est annulé' }
-
   const confirmedCount = (yogaClass.bookings as Array<{id: string, status: string}>)
     .filter((b) => b.status === 'confirmed').length
 
