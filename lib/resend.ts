@@ -188,15 +188,21 @@ export async function sendBookingReminder({
   userName: string
   yogaClass: Class
 }) {
+  console.log('[EMAIL] sendBookingReminder called', { to, userName, yogaClass: yogaClass.title })
+
   const dateFormatted = format(new Date(yogaClass.date_time), "EEEE d MMMM 'à' HH'h'mm", {
     locale: fr,
   })
 
-  return transporter.sendMail({
-    from: FROM,
-    to,
-    subject: `Rappel — cours demain ${dateFormatted}`,
-    html: `
+  const subject = `Rappel — cours demain ${dateFormatted}`
+  console.log('[EMAIL] Preparing to send reminder email with subject:', subject)
+
+  try {
+    const result = await transporter.sendMail({
+      from: FROM,
+      to,
+      subject,
+      html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -231,7 +237,14 @@ export async function sendBookingReminder({
   </div>
 </body>
 </html>`,
-  })
+    })
+
+    console.log('[EMAIL] Reminder email sent successfully to:', to)
+    return result
+  } catch (err) {
+    console.error('[EMAIL] Failed to send reminder email:', err)
+    throw err
+  }
 }
 
 export async function sendCancellationEmail({
@@ -245,15 +258,21 @@ export async function sendCancellationEmail({
   yogaClass: Class
   sessionLost: boolean
 }) {
+  console.log('[EMAIL] sendCancellationEmail called', { to, userName, yogaClass: yogaClass.title, sessionLost })
+
   const dateFormatted = format(new Date(yogaClass.date_time), "EEEE d MMMM 'à' HH'h'mm", {
     locale: fr,
   })
 
-  return transporter.sendMail({
-    from: FROM,
-    to,
-    subject: `Annulation confirmée — ${yogaClass.title}`,
-    html: `
+  const subject = `Annulation confirmée — ${yogaClass.title}`
+  console.log('[EMAIL] Preparing to send cancellation email with subject:', subject)
+
+  try {
+    const result = await transporter.sendMail({
+      from: FROM,
+      to,
+      subject,
+      html: `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -336,5 +355,12 @@ export async function sendCancellationEmail({
   </table>
 </body>
 </html>`,
-  })
+    })
+
+    console.log('[EMAIL] Cancellation email sent successfully to:', to)
+    return result
+  } catch (err) {
+    console.error('[EMAIL] Failed to send cancellation email:', err)
+    throw err
+  }
 }

@@ -277,7 +277,8 @@ export async function cancelBooking(bookingId: string) {
 
   // Promote waitlist
   if (!sessionLost) {
-    const { data: waitlisted } = await supabase
+    console.log('[CANCELLATION] Checking for waitlisted users to promote')
+    const { data: waitlisted, error: waitlistError } = await supabase
       .from('bookings')
       .select('id, user_id')
       .eq('class_id', booking.class_id)
@@ -286,31 +287,62 @@ export async function cancelBooking(bookingId: string) {
       .limit(1)
       .single()
 
+    if (waitlistError && waitlistError.code !== 'PGRST116') {
+      console.error('[CANCELLATION] Error fetching waitlisted user:', waitlistError)
+    }
+
     if (waitlisted) {
-      await supabase
+      console.log('[CANCELLATION] Promoting waitlisted user:', waitlisted.user_id)
+      const { error: promoteError } = await supabase
         .from('bookings')
         .update({ status: 'confirmed' })
         .eq('id', waitlisted.id)
+
+      if (promoteError) {
+        console.error('[CANCELLATION] Error promoting waitlisted user:', promoteError)
+      } else {
+        console.log('[CANCELLATION] Waitlisted user promoted successfully')
+      }
+    } else {
+      console.log('[CANCELLATION] No waitlisted users to promote')
     }
+  } else {
+    console.log('[CANCELLATION] Session lost, not promoting waitlist')
   }
 
   // Send cancellation email (non-blocking, with error handling)
-  if (user.email && process.env.SMTP_HOST) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', user.id)
-      .single()
+  if (user.email) {
+    console.log('[CANCELLATION] Attempting to send cancellation email to:', user.email)
+    console.log('[CANCELLATION] SMTP_HOST configured:', !!process.env.SMTP_HOST)
+    console.log('[CANCELLATION] Class info:', { title: yogaClass.title, date_time: yogaClass.date_time })
+    console.log('[CANCELLATION] Session lost:', sessionLost)
 
-    sendCancellationEmail({
-      to: user.email,
-      userName: profile?.full_name ?? user.email,
-      yogaClass,
-      sessionLost,
-    }).catch((err) => {
-      console.error('Failed to send cancellation email:', err)
-      // Don't fail the cancellation if email fails
-    })
+    if (process.env.SMTP_HOST) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single()
+
+      try {
+        const result = await sendCancellationEmail({
+          to: user.email,
+          userName: profile?.full_name ?? user.email,
+          yogaClass,
+          sessionLost,
+        })
+        console.log('[CANCELLATION] Cancellation email sent successfully to:', user.email)
+        console.log('[CANCELLATION] Email result:', result)
+      } catch (err) {
+        console.error('[CANCELLATION] Failed to send cancellation email:', err)
+        console.error('[CANCELLATION] Error details:', JSON.stringify(err, null, 2))
+        // Don't fail the cancellation if email fails
+      }
+    } else {
+      console.warn('[CANCELLATION] SMTP not configured, skipping email')
+    }
+  } else {
+    console.warn('[CANCELLATION] No email for user, skipping cancellation email')
   }
 
   revalidatePath('/classes')
