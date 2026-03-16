@@ -10,8 +10,8 @@ export async function GET() {
   if (profile?.role !== 'admin') return NextResponse.json([], { status: 403 })
 
   const { data } = await supabase
-    .from('profiles')
-    .select('id, full_name')
+    .from('profiles_with_email')
+    .select('id, full_name, email')
     .eq('role', 'user')
     .order('full_name', { ascending: true })
 

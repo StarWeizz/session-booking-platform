@@ -40,7 +40,9 @@ export default async function AdminClientsPage() {
                       <div className="font-medium text-stone-900">
                         {client.full_name ?? '(sans nom)'}
                       </div>
-                      <div className="text-xs text-stone-400 mt-0.5">{client.id.slice(0, 8)}…</div>
+                      <div className="text-xs text-stone-400 mt-0.5">
+                        {(client as any).email ?? `${client.id.slice(0, 8)}…`}
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <span className="font-medium text-stone-700">{client.booking_count}</span>

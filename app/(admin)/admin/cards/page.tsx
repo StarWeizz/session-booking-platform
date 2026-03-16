@@ -13,6 +13,7 @@ interface CardWithProfile extends Omit<SessionCard, 'profile'> {
 interface Client {
   id: string
   full_name: string | null
+  email?: string | null
 }
 
 export default function AdminCardsPage() {
@@ -90,7 +91,9 @@ export default function AdminCardsPage() {
               <select name="userId" className="input" required>
                 <option value="">Choisir un client…</option>
                 {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{c.full_name ?? c.id.slice(0, 8)}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.full_name ?? '(sans nom)'}{c.email ? ` — ${c.email}` : ''}
+                  </option>
                 ))}
               </select>
             </div>

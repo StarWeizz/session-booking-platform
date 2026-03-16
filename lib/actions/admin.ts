@@ -7,7 +7,7 @@ export async function getAllClients() {
   const supabase = await createClient()
 
   const { data: profiles } = await supabase
-    .from('profiles')
+    .from('profiles_with_email')
     .select(`
       *,
       bookings(id, status),
