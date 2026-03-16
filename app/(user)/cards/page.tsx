@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import SessionCardBadge from '@/components/SessionCardBadge'
-import { CARD_PRODUCTS } from '@/lib/stripe'
+import { CARD_PRODUCTS } from '@/lib/card-products'
 import type { SessionCard, CardType } from '@/types'
 
 function CardsContent() {
