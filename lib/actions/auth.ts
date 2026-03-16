@@ -243,17 +243,22 @@ export async function deleteAccount() {
     console.log('[DELETE_ACCOUNT] Account successfully deleted for user:', user.id)
 
     // Send deletion confirmation email
-    if (userEmail) {
+    if (userEmail && process.env.SMTP_HOST) {
+      console.log('[DELETE_ACCOUNT] Attempting to send deletion email to:', userEmail)
+      console.log('[DELETE_ACCOUNT] SMTP_HOST configured:', !!process.env.SMTP_HOST)
       try {
-        await sendAccountDeletionEmail({
+        const result = await sendAccountDeletionEmail({
           to: userEmail,
           userName,
         })
-        console.log('[DELETE_ACCOUNT] Deletion confirmation email sent to:', userEmail)
+        console.log('[DELETE_ACCOUNT] Deletion confirmation email sent successfully to:', userEmail)
+        console.log('[DELETE_ACCOUNT] Email result:', result)
       } catch (emailError) {
         console.error('[DELETE_ACCOUNT] Failed to send deletion email:', emailError)
         // Don't fail the deletion if email fails
       }
+    } else if (!process.env.SMTP_HOST) {
+      console.log('[DELETE_ACCOUNT] SMTP not configured, skipping deletion email')
     }
 
     // Sign out

@@ -34,17 +34,22 @@ export async function GET(request: Request) {
           })
 
           // Send welcome email for new users
-          if (user.email && full_name) {
+          if (user.email && full_name && process.env.SMTP_HOST) {
+            console.log('[AUTH_CALLBACK] Attempting to send welcome email to:', user.email)
+            console.log('[AUTH_CALLBACK] SMTP_HOST configured:', !!process.env.SMTP_HOST)
             try {
-              await sendWelcomeEmail({
+              const result = await sendWelcomeEmail({
                 to: user.email,
                 userName: full_name,
               })
-              console.log('[AUTH_CALLBACK] Welcome email sent to:', user.email)
+              console.log('[AUTH_CALLBACK] Welcome email sent successfully to:', user.email)
+              console.log('[AUTH_CALLBACK] Email result:', result)
             } catch (emailError) {
               console.error('[AUTH_CALLBACK] Failed to send welcome email:', emailError)
               // Don't block registration if email fails
             }
+          } else if (!process.env.SMTP_HOST) {
+            console.log('[AUTH_CALLBACK] SMTP not configured, skipping welcome email')
           }
         }
       }
