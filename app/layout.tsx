@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: '%s | Studio Yoga',
   },
   description: 'Réservez vos cours de yoga en ligne — simple, rapide, sans friction.',
-  manifest: '/manifest.json',
+  // manifest: '/manifest.json',  // Désactivé temporairement - réactiver quand les icônes PWA seront prêtes
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
