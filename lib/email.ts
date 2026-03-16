@@ -247,6 +247,252 @@ export async function sendBookingReminder({
   }
 }
 
+export async function sendWelcomeEmail({
+  to,
+  userName,
+}: {
+  to: string
+  userName: string
+}) {
+  console.log('[EMAIL] sendWelcomeEmail called', { to, userName })
+
+  const subject = `Bienvenue ${userName} — Votre première séance est offerte ! 🎁`
+  console.log('[EMAIL] Preparing to send welcome email with subject:', subject)
+
+  try {
+    const result = await transporter.sendMail({
+      from: FROM,
+      to,
+      subject,
+      html: `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bienvenue chez ${STUDIO_NAME}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#FAF8F5;font-family:Georgia,serif;-webkit-font-smoothing:antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+    style="background-color:#FAF8F5;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+          style="max-width:520px;background-color:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(28,25,23,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#8FA892;padding:28px 40px;">
+              <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.7);letter-spacing:0.08em;text-transform:uppercase;">
+                ${STUDIO_NAME}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Corps -->
+          <tr>
+            <td style="padding:40px 40px 32px;">
+
+              <h1 style="margin:0 0 8px;font-size:24px;font-weight:600;color:#1C1917;line-height:1.2;">
+                Bienvenue ${userName} ! 🙏
+              </h1>
+              <p style="margin:0 0 28px;font-size:16px;color:#6B5F50;line-height:1.6;">
+                Votre compte a été créé avec succès. Nous sommes ravis de vous accueillir dans notre communauté de yoga.
+              </p>
+
+              <!-- Cadeau de bienvenue -->
+              <table cellpadding="0" cellspacing="0" role="presentation"
+                style="width:100%;background-color:#FEF3C7;border-radius:12px;padding:20px;margin-bottom:24px;">
+                <tr>
+                  <td>
+                    <p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#92400E;">
+                      🎁 Cadeau de bienvenue
+                    </p>
+                    <p style="margin:0;font-size:14px;color:#92400E;line-height:1.6;">
+                      Votre première séance est <strong>entièrement gratuite</strong> ! C'est l'occasion parfaite pour découvrir nos cours et notre studio.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Comment réserver -->
+              <table cellpadding="0" cellspacing="0" role="presentation"
+                style="width:100%;background-color:#FAF8F5;border-radius:12px;padding:20px;margin-bottom:24px;">
+                <tr>
+                  <td>
+                    <p style="margin:0 0 12px;font-size:14px;font-weight:600;color:#1C1917;">
+                      Comment réserver votre séance d'essai ?
+                    </p>
+                    <p style="margin:0;font-size:14px;color:#6B5F50;line-height:1.6;">
+                      1. Connectez-vous à votre compte<br>
+                      2. Consultez la page "Cours"<br>
+                      3. Choisissez le cours qui vous intéresse<br>
+                      4. Cliquez sur "🎁 Séance d'essai gratuite"
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Info complémentaire -->
+              <table cellpadding="0" cellspacing="0" role="presentation"
+                style="width:100%;border-left:3px solid #8FA892;padding-left:16px;margin-bottom:24px;">
+                <tr>
+                  <td>
+                    <p style="margin:0;font-size:14px;color:#6B5F50;line-height:1.6;">
+                      <strong>Après votre essai :</strong> Vous pourrez acheter des cartes de séances (10 ou 20 séances) ou réserver avec paiement sur place. Aucune obligation !
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;font-size:14px;color:#6B5F50;line-height:1.6;">
+                Si vous avez des questions, n'hésitez pas à nous contacter. Au plaisir de vous voir sur le tapis ! 🌿
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#FAF8F5;padding:20px 40px;border-top:1px solid #EDE5D8;">
+              <p style="margin:0;font-size:12px;color:#A89880;text-align:center;line-height:1.6;">
+                ${STUDIO_NAME} · Namasté
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    })
+
+    console.log('[EMAIL] Welcome email sent successfully to:', to)
+    return result
+  } catch (err) {
+    console.error('[EMAIL] Failed to send welcome email:', err)
+    throw err
+  }
+}
+
+export async function sendAccountDeletionEmail({
+  to,
+  userName,
+}: {
+  to: string
+  userName: string
+}) {
+  console.log('[EMAIL] sendAccountDeletionEmail called', { to, userName })
+
+  const subject = 'Suppression de compte confirmée'
+  console.log('[EMAIL] Preparing to send account deletion email with subject:', subject)
+
+  try {
+    const result = await transporter.sendMail({
+      from: FROM,
+      to,
+      subject,
+      html: `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suppression de compte confirmée</title>
+</head>
+<body style="margin:0;padding:0;background-color:#FAF8F5;font-family:Georgia,serif;-webkit-font-smoothing:antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+    style="background-color:#FAF8F5;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+          style="max-width:520px;background-color:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(28,25,23,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#8C7C68;padding:28px 40px;">
+              <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.7);letter-spacing:0.08em;text-transform:uppercase;">
+                ${STUDIO_NAME}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Corps -->
+          <tr>
+            <td style="padding:40px 40px 32px;">
+
+              <h1 style="margin:0 0 8px;font-size:24px;font-weight:600;color:#1C1917;line-height:1.2;">
+                Votre compte a été supprimé
+              </h1>
+              <p style="margin:0 0 28px;font-size:16px;color:#6B5F50;line-height:1.6;">
+                Bonjour ${userName}, votre compte et toutes vos données personnelles ont été définitivement supprimés de notre système.
+              </p>
+
+              <!-- Détails suppression -->
+              <table cellpadding="0" cellspacing="0" role="presentation"
+                style="width:100%;background-color:#FAF8F5;border-radius:12px;padding:20px;margin-bottom:24px;">
+                <tr>
+                  <td>
+                    <p style="margin:0 0 4px;font-size:12px;color:#8C7C68;letter-spacing:0.08em;text-transform:uppercase;">
+                      Données supprimées
+                    </p>
+                    <p style="margin:0 0 12px;font-size:14px;color:#1C1917;line-height:1.6;">
+                      • Profil utilisateur<br>
+                      • Réservations<br>
+                      • Cartes de séances<br>
+                      • Historique de paiements<br>
+                      • Compte d'authentification
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Note RGPD -->
+              <table cellpadding="0" cellspacing="0" role="presentation"
+                style="width:100%;border-left:3px solid #8C7C68;padding-left:16px;margin-bottom:24px;">
+                <tr>
+                  <td>
+                    <p style="margin:0;font-size:14px;color:#6B5F50;line-height:1.6;">
+                      Conformément au RGPD, toutes vos données personnelles ont été supprimées de manière définitive et irréversible.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;font-size:14px;color:#6B5F50;line-height:1.6;">
+                Nous sommes désolés de vous voir partir. Si vous souhaitez revenir, vous pourrez créer un nouveau compte à tout moment.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#FAF8F5;padding:20px 40px;border-top:1px solid #EDE5D8;">
+              <p style="margin:0;font-size:12px;color:#A89880;text-align:center;line-height:1.6;">
+                ${STUDIO_NAME} · Namasté 🙏
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    })
+
+    console.log('[EMAIL] Account deletion email sent successfully to:', to)
+    return result
+  } catch (err) {
+    console.error('[EMAIL] Failed to send account deletion email:', err)
+    throw err
+  }
+}
+
 export async function sendCancellationEmail({
   to,
   userName,

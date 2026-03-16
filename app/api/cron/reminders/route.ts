@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server'
-import { sendBookingReminder } from '@/lib/resend'
+import { sendBookingReminder } from '@/lib/email'
 import { NextResponse } from 'next/server'
 import { addHours } from 'date-fns'
 

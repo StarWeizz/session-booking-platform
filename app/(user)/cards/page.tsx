@@ -168,7 +168,9 @@ function CardsContent() {
             >
               {product.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="badge-terra text-[11px] px-3">La plus choisie</span>
+                  <span className="inline-flex items-center gap-1 bg-terra text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-sm">
+                    ✨ La plus choisie
+                  </span>
                 </div>
               )}
 

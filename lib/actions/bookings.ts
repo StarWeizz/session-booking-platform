@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { sendBookingConfirmation, sendCancellationEmail } from '@/lib/resend'
+import { sendBookingConfirmation, sendCancellationEmail } from '@/lib/email'
 import { differenceInHours } from 'date-fns'
 import { revalidatePath } from 'next/cache'
 

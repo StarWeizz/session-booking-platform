@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { sendWelcomeEmail } from '@/lib/email'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -21,12 +22,30 @@ export async function GET(request: Request) {
           .single()
 
         if (!profile) {
+          // Create new profile
+          const full_name = user.user_metadata?.full_name ?? null
+          const phone = user.user_metadata?.phone ?? null
+
           await supabase.from('profiles').insert({
             id: user.id,
-            full_name: user.user_metadata?.full_name ?? null,
-            phone: user.user_metadata?.phone ?? null,
+            full_name,
+            phone,
             role: 'user',
           })
+
+          // Send welcome email for new users
+          if (user.email && full_name) {
+            try {
+              await sendWelcomeEmail({
+                to: user.email,
+                userName: full_name,
+              })
+              console.log('[AUTH_CALLBACK] Welcome email sent to:', user.email)
+            } catch (emailError) {
+              console.error('[AUTH_CALLBACK] Failed to send welcome email:', emailError)
+              // Don't block registration if email fails
+            }
+          }
         }
       }
 

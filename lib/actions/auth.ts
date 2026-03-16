@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { sendAccountDeletionEmail } from '@/lib/email'
 
 const emailSchema = z.string().email('Adresse email invalide')
 
@@ -152,6 +153,16 @@ export async function deleteAccount() {
 
   console.log('[DELETE_ACCOUNT] Starting account deletion for user:', user.id)
 
+  // Get user info for email before deletion
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .single()
+
+  const userEmail = user.email
+  const userName = profile?.full_name || 'utilisateur'
+
   try {
     // Delete in cascade order (child tables first)
     // Note: Most deletions will cascade automatically due to foreign key constraints
@@ -230,6 +241,20 @@ export async function deleteAccount() {
     }
 
     console.log('[DELETE_ACCOUNT] Account successfully deleted for user:', user.id)
+
+    // Send deletion confirmation email
+    if (userEmail) {
+      try {
+        await sendAccountDeletionEmail({
+          to: userEmail,
+          userName,
+        })
+        console.log('[DELETE_ACCOUNT] Deletion confirmation email sent to:', userEmail)
+      } catch (emailError) {
+        console.error('[DELETE_ACCOUNT] Failed to send deletion email:', emailError)
+        // Don't fail the deletion if email fails
+      }
+    }
 
     // Sign out
     await supabase.auth.signOut()

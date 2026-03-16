@@ -166,12 +166,13 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
               {loading ? 'En cours…' : "Quitter la liste d\u2019attente"}
             </button>
           ) : (
-            <div className="flex gap-2">
+            <div className="space-y-2">
+              {/* Bouton principal : essai gratuit ou réservation avec carte */}
               {isTrialEligible ? (
                 <button
                   onClick={() => handleBook('trial')}
                   disabled={loading}
-                  className="btn-primary flex-1"
+                  className="btn-primary w-full"
                 >
                   {loading ? 'Réservation…' : isFull ? 'Liste d\'attente (essai)' : '🎁 Séance d\'essai gratuite'}
                 </button>
@@ -179,18 +180,30 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
                 <button
                   onClick={() => handleBook('card')}
                   disabled={loading || cardLimit || isBeyondTwoWeeks}
-                  className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Réservation…' : cardLimit ? 'Limite atteinte' : isBeyondTwoWeeks ? 'Trop tôt' : isFull ? 'Liste d\'attente' : 'Réserver'}
                 </button>
-              ) : null}
-              <button
-                onClick={() => handleBook('on_site')}
-                disabled={loading || onSiteLimit}
-                className={`${(isTrialEligible || totalSessions > 0) ? 'btn-secondary text-stone-700' : 'btn-primary flex-1'} whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {loading ? 'En cours…' : onSiteLimit ? 'Limite atteinte' : 'Paiement sur place'}
-              </button>
+              ) : (
+                <button
+                  onClick={() => handleBook('on_site')}
+                  disabled={loading || onSiteLimit}
+                  className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'En cours…' : onSiteLimit ? 'Limite atteinte' : 'Paiement sur place'}
+                </button>
+              )}
+
+              {/* Bouton paiement sur place discret (seulement si pas le bouton principal) */}
+              {(isTrialEligible || totalSessions > 0) && (
+                <button
+                  onClick={() => handleBook('on_site')}
+                  disabled={loading || onSiteLimit}
+                  className="w-full text-center text-xs text-stone-500 hover:text-stone-700 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? 'En cours…' : onSiteLimit ? 'Limite atteinte (2 max)' : 'ou payer sur place'}
+                </button>
+              )}
             </div>
           )}
         </>
