@@ -27,7 +27,7 @@ export async function sendBookingConfirmation({
   userName: string
   yogaClass: Class
   isWaitlist?: boolean
-  paymentMethod?: 'card' | 'on_site'
+  paymentMethod?: 'card' | 'on_site' | 'trial'
 }) {
   console.log('[EMAIL] sendBookingConfirmation called', { to, userName, yogaClass: yogaClass.title, isWaitlist, paymentMethod })
 
@@ -37,14 +37,20 @@ export async function sendBookingConfirmation({
 
   const subject = isWaitlist
     ? `Liste d'attente — ${yogaClass.title}`
+    : paymentMethod === 'trial'
+    ? `Séance d'essai confirmée — ${yogaClass.title}`
     : `Réservation confirmée — ${yogaClass.title}`
 
   const statusMessage = isWaitlist
     ? 'Vous êtes sur liste d\'attente'
+    : paymentMethod === 'trial'
+    ? '🎁 Séance d\'essai gratuite confirmée ✓'
     : 'Réservation confirmée ✓'
 
   const cancellationNote = paymentMethod === 'card'
     ? 'Annulation gratuite jusqu\'à 24h avant le cours. Passé ce délai, la séance sera déduite.'
+    : paymentMethod === 'trial'
+    ? 'Vous pouvez annuler gratuitement à tout moment. Profitez de votre première séance !'
     : 'Vous pouvez annuler gratuitement à tout moment.'
 
   console.log('[EMAIL] Preparing to send email with subject:', subject)

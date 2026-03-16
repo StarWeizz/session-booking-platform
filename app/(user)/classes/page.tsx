@@ -1,4 +1,4 @@
-import { getUpcomingClasses } from '@/lib/actions/bookings'
+import { getUpcomingClasses, isEligibleForTrial } from '@/lib/actions/bookings'
 import { getTotalRemainingSession } from '@/lib/actions/cards'
 import ClassCard from '@/components/ClassCard'
 import { format } from 'date-fns'
@@ -20,9 +20,10 @@ function groupByDate(classes: Awaited<ReturnType<typeof getUpcomingClasses>>) {
 }
 
 export default async function ClassesPage() {
-  const [classes, totalSessions] = await Promise.all([
+  const [classes, totalSessions, isTrialEligible] = await Promise.all([
     getUpcomingClasses(),
     getTotalRemainingSession(),
+    isEligibleForTrial(),
   ])
 
   const groups = groupByDate(classes)
@@ -35,7 +36,9 @@ export default async function ClassesPage() {
           Cours à venir
         </h1>
         <p className="text-stone-400 text-sm">
-          {totalSessions > 0 ? (
+          {isTrialEligible ? (
+            <>🎁 Votre <strong className="text-sage-dark">première séance est gratuite</strong> !</>
+          ) : totalSessions > 0 ? (
             <>Vous avez <strong className="text-stone-700">{totalSessions} séance{totalSessions > 1 ? 's' : ''}</strong> disponible{totalSessions > 1 ? 's' : ''}.</>
           ) : (
             <>Aucune séance disponible. <Link href="/cards" className="text-terra underline">Acheter une carte</Link></>
@@ -73,6 +76,7 @@ export default async function ClassesPage() {
                       key={c.id}
                       yogaClass={c as Parameters<typeof ClassCard>[0]['yogaClass']}
                       totalSessions={totalSessions}
+                      isTrialEligible={isTrialEligible}
                     />
                   ))}
                 </div>

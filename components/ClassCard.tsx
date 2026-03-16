@@ -9,9 +9,10 @@ import type { Class } from '@/types'
 interface Props {
   yogaClass: Class
   totalSessions: number
+  isTrialEligible?: boolean
 }
 
-export default function ClassCard({ yogaClass, totalSessions }: Props) {
+export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = false }: Props) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ success?: boolean; error?: string; waitlist?: boolean; sessionLost?: boolean } | null>(null)
   const [actionType, setActionType] = useState<'book' | 'cancel' | null>(null)
@@ -26,7 +27,7 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
   const isWaitlisted = yogaClass.user_booking?.status === 'waitlist'
   const isPast = date < new Date()
 
-  async function handleBook(paymentMethod: 'card' | 'on_site' = 'card') {
+  async function handleBook(paymentMethod: 'card' | 'on_site' | 'trial' = 'card') {
     setLoading(true)
     setResult(null)
     setActionType('book')
@@ -116,6 +117,14 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
                   Paiement sur place
                 </div>
               )}
+              {yogaClass.user_booking?.payment_method === 'trial' && (
+                <div className="text-xs text-sage-dark bg-sage/10 rounded-lg px-3 py-2 mb-2 flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0l-8-8-8 8"/>
+                  </svg>
+                  Séance d'essai gratuite
+                </div>
+              )}
               <button
                 onClick={handleCancel}
                 disabled={loading}
@@ -134,7 +143,15 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
             </button>
           ) : (
             <div className="flex gap-2">
-              {totalSessions > 0 && (
+              {isTrialEligible ? (
+                <button
+                  onClick={() => handleBook('trial')}
+                  disabled={loading}
+                  className="btn-primary flex-1"
+                >
+                  {loading ? 'Réservation…' : isFull ? 'Liste d\'attente (essai)' : '🎁 Séance d\'essai gratuite'}
+                </button>
+              ) : totalSessions > 0 ? (
                 <button
                   onClick={() => handleBook('card')}
                   disabled={loading}
@@ -142,11 +159,11 @@ export default function ClassCard({ yogaClass, totalSessions }: Props) {
                 >
                   {loading ? 'Réservation…' : isFull ? 'Liste d\'attente' : 'Réserver'}
                 </button>
-              )}
+              ) : null}
               <button
                 onClick={() => handleBook('on_site')}
                 disabled={loading}
-                className={`${totalSessions > 0 ? 'btn-secondary text-stone-700' : 'btn-primary flex-1'} whitespace-nowrap`}
+                className={`${(isTrialEligible || totalSessions > 0) ? 'btn-secondary text-stone-700' : 'btn-primary flex-1'} whitespace-nowrap`}
               >
                 {loading ? 'En cours…' : 'Paiement sur place'}
               </button>

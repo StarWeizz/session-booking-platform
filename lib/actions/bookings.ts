@@ -57,7 +57,35 @@ export async function getUserBookings() {
   return data ?? []
 }
 
-export async function bookClass(classId: string, paymentMethod: 'card' | 'on_site' = 'card') {
+/**
+ * Check if user is eligible for a free trial session
+ * Returns true if user has never had a confirmed booking before
+ */
+export async function isEligibleForTrial(userId?: string) {
+  const supabase = await createClient()
+
+  let targetUserId = userId
+  if (!targetUserId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+    targetUserId = user.id
+  }
+
+  // Check if user has any confirmed bookings (past or present)
+  const { data: bookings, error } = await supabase
+    .from('bookings')
+    .select('id')
+    .eq('user_id', targetUserId)
+    .eq('status', 'confirmed')
+    .limit(1)
+
+  if (error) return false
+
+  // User is eligible if they have no confirmed bookings
+  return !bookings || bookings.length === 0
+}
+
+export async function bookClass(classId: string, paymentMethod: 'card' | 'on_site' | 'trial' = 'card') {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Non authentifié' }
@@ -72,6 +100,14 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
 
   if (existingBooking?.status === 'cancelled') {
     return { error: 'Vous avez déjà annulé ce cours. Vous ne pouvez pas le réserver à nouveau.' }
+  }
+
+  // Validate trial eligibility if trial payment method
+  if (paymentMethod === 'trial') {
+    const eligible = await isEligibleForTrial(user.id)
+    if (!eligible) {
+      return { error: 'Vous avez déjà utilisé votre séance d\'essai gratuite.' }
+    }
   }
 
   // Only check for available sessions if payment method is 'card'

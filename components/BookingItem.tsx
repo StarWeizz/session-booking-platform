@@ -18,7 +18,8 @@ export default function BookingItem({ booking }: Props) {
   const date = new Date(booking.class.date_time)
   const hoursUntil = differenceInHours(date, new Date())
   const isOnSitePayment = booking.payment_method === 'on_site'
-  const canCancelFree = hoursUntil >= 24 || isOnSitePayment
+  const isTrialSession = booking.payment_method === 'trial'
+  const canCancelFree = hoursUntil >= 24 || isOnSitePayment || isTrialSession
 
   async function handleCancel() {
     setLoading(true)
@@ -55,6 +56,11 @@ export default function BookingItem({ booking }: Props) {
           </div>
           <div className="text-xs text-stone-400 mt-0.5 flex items-center gap-2">
             {booking.class.location}
+            {isTrialSession && (
+              <span className="inline-flex items-center gap-1 text-sage-dark bg-sage/20 px-2 py-0.5 rounded-md font-medium">
+                🎁 Essai gratuit
+              </span>
+            )}
             {isOnSitePayment && (
               <span className="inline-flex items-center gap-1 text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

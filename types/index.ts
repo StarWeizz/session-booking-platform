@@ -25,7 +25,7 @@ export interface Class {
 }
 
 export type BookingStatus = 'confirmed' | 'cancelled' | 'waitlist'
-export type PaymentMethod = 'card' | 'on_site'
+export type PaymentMethod = 'card' | 'on_site' | 'trial'
 
 export interface Booking {
   id: string
