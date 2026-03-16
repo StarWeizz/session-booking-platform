@@ -60,6 +60,20 @@ export async function signInWithMagicLink(formData: FormData) {
   const email = parse.data
   const supabase = await createClient()
 
+  // Check if user profile exists
+  const { data: existingProfile } = await supabase
+    .from('profiles_with_email')
+    .select('id')
+    .eq('email', email)
+    .single()
+
+  if (!existingProfile) {
+    return {
+      error: 'Compte introuvable',
+      isNewUser: true
+    }
+  }
+
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
@@ -144,13 +158,22 @@ export async function deleteAccount() {
     // but we're being explicit for clarity and logging
 
     // 1. Delete session usage records
-    const { error: usageError } = await supabase
-      .from('session_usage')
-      .delete()
-      .in('card_id', supabase.from('session_cards').select('id').eq('user_id', user.id))
+    // First get all card IDs for this user
+    const { data: userCards } = await supabase
+      .from('session_cards')
+      .select('id')
+      .eq('user_id', user.id)
 
-    if (usageError) {
-      console.error('[DELETE_ACCOUNT] Error deleting session usage:', usageError)
+    if (userCards && userCards.length > 0) {
+      const cardIds = userCards.map(c => c.id)
+      const { error: usageError } = await supabase
+        .from('session_usage')
+        .delete()
+        .in('card_id', cardIds)
+
+      if (usageError) {
+        console.error('[DELETE_ACCOUNT] Error deleting session usage:', usageError)
+      }
     }
 
     // 2. Delete payments

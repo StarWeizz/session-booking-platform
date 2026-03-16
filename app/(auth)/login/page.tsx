@@ -20,7 +20,7 @@ export default function LoginPage() {
 
     if (result.error) {
       setError(result.error)
-      setStatus('error')
+      setStatus((result as any).isNewUser ? 'idle' : 'error')
     } else {
       setStatus('sent')
     }
@@ -91,8 +91,16 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">
-                {error}
+              <div className="text-sm bg-red-50 rounded-xl px-4 py-3">
+                <p className="text-red-600 mb-2">{error}</p>
+                {error === 'Compte introuvable' && (
+                  <p className="text-stone-600">
+                    Vous n'avez pas encore de compte ?{' '}
+                    <Link href="/signup" className="text-terra hover:underline font-medium">
+                      Créer un compte
+                    </Link>
+                  </p>
+                )}
               </div>
             )}
 
@@ -114,7 +122,14 @@ export default function LoginPage() {
               )}
             </button>
 
-            <p className="text-center text-xs text-stone-400 pt-4">
+            <p className="text-center text-sm text-stone-500 pt-4">
+              Pas encore de compte ?{' '}
+              <Link href="/signup" className="text-terra hover:underline">
+                S'inscrire
+              </Link>
+            </p>
+
+            <p className="text-center text-xs text-stone-400 pt-2">
               En continuant, vous acceptez les conditions d'utilisation.
             </p>
           </form>
