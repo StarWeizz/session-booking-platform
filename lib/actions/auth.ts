@@ -119,3 +119,101 @@ export async function updateProfile(formData: FormData) {
 
   return { success: true }
 }
+
+/**
+ * Delete user account and all associated data (GDPR compliance)
+ * This will delete:
+ * - User profile
+ * - All bookings
+ * - All session cards
+ * - All session usage records
+ * - All payment records
+ * - Auth user account
+ */
+export async function deleteAccount() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Non authentifié' }
+
+  console.log('[DELETE_ACCOUNT] Starting account deletion for user:', user.id)
+
+  try {
+    // Delete in cascade order (child tables first)
+    // Note: Most deletions will cascade automatically due to foreign key constraints
+    // but we're being explicit for clarity and logging
+
+    // 1. Delete session usage records
+    const { error: usageError } = await supabase
+      .from('session_usage')
+      .delete()
+      .in('card_id', supabase.from('session_cards').select('id').eq('user_id', user.id))
+
+    if (usageError) {
+      console.error('[DELETE_ACCOUNT] Error deleting session usage:', usageError)
+    }
+
+    // 2. Delete payments
+    const { error: paymentsError } = await supabase
+      .from('payments')
+      .delete()
+      .eq('user_id', user.id)
+
+    if (paymentsError) {
+      console.error('[DELETE_ACCOUNT] Error deleting payments:', paymentsError)
+    }
+
+    // 3. Delete session cards
+    const { error: cardsError } = await supabase
+      .from('session_cards')
+      .delete()
+      .eq('user_id', user.id)
+
+    if (cardsError) {
+      console.error('[DELETE_ACCOUNT] Error deleting session cards:', cardsError)
+    }
+
+    // 4. Delete bookings
+    const { error: bookingsError } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('user_id', user.id)
+
+    if (bookingsError) {
+      console.error('[DELETE_ACCOUNT] Error deleting bookings:', bookingsError)
+    }
+
+    // 5. Delete profile (this will cascade to auth.users due to foreign key)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', user.id)
+
+    if (profileError) {
+      console.error('[DELETE_ACCOUNT] Error deleting profile:', profileError)
+      return { error: 'Impossible de supprimer le profil' }
+    }
+
+    // 6. Delete auth user (admin API required)
+    // Note: This requires admin privileges, which we have via createAdminClient
+    const { createAdminClient } = await import('@/lib/supabase/server')
+    const adminClient = await createAdminClient()
+
+    const { error: authError } = await adminClient.auth.admin.deleteUser(user.id)
+
+    if (authError) {
+      console.error('[DELETE_ACCOUNT] Error deleting auth user:', authError)
+      return { error: 'Impossible de supprimer le compte utilisateur' }
+    }
+
+    console.log('[DELETE_ACCOUNT] Account successfully deleted for user:', user.id)
+
+    // Sign out
+    await supabase.auth.signOut()
+
+    return { success: true }
+  } catch (err) {
+    console.error('[DELETE_ACCOUNT] Unexpected error:', err)
+    return { error: 'Une erreur est survenue lors de la suppression du compte' }
+  }
+}
