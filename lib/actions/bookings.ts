@@ -209,6 +209,7 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
       .select('id, class:classes(date_time)')
       .eq('user_id', user.id)
       .eq('status', 'confirmed')
+      .eq('payment_method', 'card')
 
     const now = new Date().toISOString()
     const engagedCount = (upcomingBookings ?? []).filter(
