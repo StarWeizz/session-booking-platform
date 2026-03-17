@@ -182,7 +182,7 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
                   disabled={loading || cardLimit || isBeyondTwoWeeks}
                   className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Réservation…' : cardLimit ? 'Limite atteinte' : isBeyondTwoWeeks ? 'Trop tôt' : isFull ? 'Liste d\'attente' : 'Réserver'}
+                  {loading ? 'Réservation…' : cardLimit ? 'Limite atteinte' : isBeyondTwoWeeks ? 'Trop tôt' : isFull ? 'Liste d\'attente' : 'Réserver avec la carte'}
                 </button>
               ) : (
                 <button

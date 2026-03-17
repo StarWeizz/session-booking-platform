@@ -42,7 +42,7 @@ export default async function ClassesPage() {
           ) : totalSessions > 0 ? (
             <>Vous avez <strong className="text-stone-700">{totalSessions} séance{totalSessions > 1 ? 's' : ''}</strong> disponible{totalSessions > 1 ? 's' : ''}.</>
           ) : (
-            <>Aucune séance disponible. <Link href="/cards" className="text-terra underline">Acheter une carte</Link></>
+            <>Plus de séances disponibles. <Link href="/cards" className="text-terra underline">Acheter des séances</Link> pour réserver.</>
           )}
         </p>
       </div>
