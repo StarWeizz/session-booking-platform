@@ -96,9 +96,19 @@ function CardsContent() {
         </div>
       )}
 
+      {/* Card limit warning - affects both single sessions and multi-session cards */}
+      {hasActiveCard && (
+        <div className="card mb-8 bg-blue-50 border-blue-200 animate-slide-up animate-stagger-2">
+          <p className="text-sm text-stone-700 font-medium mb-1">Limite de carte atteinte</p>
+          <p className="text-xs text-stone-500">
+            Utilisez vos séances restantes avant d'acheter de nouvelles séances ou une nouvelle carte.
+          </p>
+        </div>
+      )}
+
       {/* Single session option */}
       {CARD_PRODUCTS.filter(p => p.type === '1').map((product) => (
-        <div key={product.type} className="mb-8 animate-slide-up animate-stagger-2">
+        <div key={product.type} className="mb-8 animate-slide-up animate-stagger-3">
           <h2 className="text-sm font-medium text-stone-500 uppercase tracking-wide mb-3">
             Séance unique
           </h2>
@@ -118,7 +128,7 @@ function CardsContent() {
 
             <button
               onClick={() => handlePurchase(product.type)}
-              disabled={loading !== null}
+              disabled={loading !== null || hasActiveCard}
               className="btn-secondary disabled:opacity-60"
             >
               {loading === product.type ? (
@@ -129,6 +139,8 @@ function CardsContent() {
                   </svg>
                   Redirection…
                 </>
+              ) : hasActiveCard ? (
+                'Carte active existante'
               ) : (
                 `Acheter — ${product.price}€`
               )}
@@ -138,20 +150,10 @@ function CardsContent() {
       ))}
 
       {/* Multi-session cards */}
-      <div className="animate-slide-up animate-stagger-3">
+      <div className="animate-slide-up animate-stagger-4">
         <h2 className="text-sm font-medium text-stone-500 uppercase tracking-wide mb-3">
           Cartes de séances
         </h2>
-
-        {/* Card limit warning */}
-        {hasActiveCard && (
-          <div className="card mb-4 bg-blue-50 border-blue-200">
-            <p className="text-sm text-stone-700 font-medium mb-1">Limite de carte atteinte</p>
-            <p className="text-xs text-stone-500">
-              Utilisez vos séances restantes avant d'acheter une nouvelle carte.
-            </p>
-          </div>
-        )}
 
         {/* Validation error */}
         {error && (

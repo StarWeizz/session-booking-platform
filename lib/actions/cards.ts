@@ -151,18 +151,13 @@ export async function validateCardPurchase(
   cardType: CardType,
   userId?: string
 ): Promise<{ error: string; details: string } | null> {
-  // Single sessions are always allowed
-  if (cardType === '1') {
-    return null
-  }
-
-  // Check for existing active multi-session card
+  // Check for existing active multi-session card (10 or 20 sessions)
   const activeCard = await getActiveMultiSessionCard(userId)
 
   if (activeCard) {
     return {
       error: 'Limite de carte atteinte',
-      details: `Vous avez déjà une carte active avec ${activeCard.remaining_sessions} séance${activeCard.remaining_sessions > 1 ? 's' : ''} restante${activeCard.remaining_sessions > 1 ? 's' : ''}. Utilisez vos séances avant d'acheter une nouvelle carte.`,
+      details: `Vous avez déjà une carte active avec ${activeCard.remaining_sessions} séance${activeCard.remaining_sessions > 1 ? 's' : ''} restante${activeCard.remaining_sessions > 1 ? 's' : ''}. Utilisez vos séances avant d'acheter ${cardType === '1' ? 'une séance unique' : 'une nouvelle carte'}.`,
     }
   }
 
