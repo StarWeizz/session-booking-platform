@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { sendBookingConfirmation, sendCancellationEmail } from '@/lib/email'
 import { differenceInHours } from 'date-fns'
 import { revalidatePath } from 'next/cache'
 
@@ -250,39 +249,22 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
 
   if (bookingError) return { error: 'Impossible de créer la réservation' }
 
-  // Send confirmation email (non-blocking, with error handling)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .single()
-
-  if (user.email) {
-    console.log('[BOOKING] Attempting to send confirmation email to:', user.email)
-    console.log('[BOOKING] SMTP_HOST configured:', !!process.env.SMTP_HOST)
-    console.log('[BOOKING] Class info:', { title: yogaClass.title, date_time: yogaClass.date_time, location: yogaClass.location })
-    console.log('[BOOKING] Booking status:', newStatus, 'Payment method:', paymentMethod)
-
-    if (process.env.SMTP_HOST) {
-      try {
-        const result = await sendBookingConfirmation({
-          to: user.email,
-          userName: profile?.full_name ?? user.email,
-          yogaClass,
-          isWaitlist: newStatus === 'waitlist',
-          paymentMethod,
-        })
-        console.log('[BOOKING] Confirmation email sent successfully to:', user.email)
-        console.log('[BOOKING] Email result:', result)
-      } catch (err) {
-        console.error('[BOOKING] Failed to send confirmation email:', err)
-        console.error('[BOOKING] Error details:', JSON.stringify(err, null, 2))
-        // Don't fail the booking if email fails
-      }
-    } else {
-      console.warn('[BOOKING] SMTP not configured, skipping email')
-    }
-  }
+  // Send confirmation email asynchronously (non-blocking)
+  // Fire and forget - don't wait for email to complete
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  fetch(`${siteUrl}/api/emails/booking-confirmation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: user.id,
+      classId,
+      isWaitlist: newStatus === 'waitlist',
+      paymentMethod,
+    }),
+  }).catch((err) => {
+    console.error('[BOOKING] Failed to trigger email API:', err)
+    // Don't fail the booking if email fails
+  })
 
   revalidatePath('/classes')
   revalidatePath('/dashboard')
@@ -396,40 +378,21 @@ export async function cancelBooking(bookingId: string) {
     console.log('[CANCELLATION] Session lost, not promoting waitlist')
   }
 
-  // Send cancellation email (non-blocking, with error handling)
-  if (user.email) {
-    console.log('[CANCELLATION] Attempting to send cancellation email to:', user.email)
-    console.log('[CANCELLATION] SMTP_HOST configured:', !!process.env.SMTP_HOST)
-    console.log('[CANCELLATION] Class info:', { title: yogaClass.title, date_time: yogaClass.date_time })
-    console.log('[CANCELLATION] Session lost:', sessionLost)
-
-    if (process.env.SMTP_HOST) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single()
-
-      try {
-        const result = await sendCancellationEmail({
-          to: user.email,
-          userName: profile?.full_name ?? user.email,
-          yogaClass,
-          sessionLost,
-        })
-        console.log('[CANCELLATION] Cancellation email sent successfully to:', user.email)
-        console.log('[CANCELLATION] Email result:', result)
-      } catch (err) {
-        console.error('[CANCELLATION] Failed to send cancellation email:', err)
-        console.error('[CANCELLATION] Error details:', JSON.stringify(err, null, 2))
-        // Don't fail the cancellation if email fails
-      }
-    } else {
-      console.warn('[CANCELLATION] SMTP not configured, skipping email')
-    }
-  } else {
-    console.warn('[CANCELLATION] No email for user, skipping cancellation email')
-  }
+  // Send cancellation email asynchronously (non-blocking)
+  // Fire and forget - don't wait for email to complete
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  fetch(`${siteUrl}/api/emails/cancellation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: user.id,
+      classId: booking.class_id,
+      sessionLost,
+    }),
+  }).catch((err) => {
+    console.error('[CANCELLATION] Failed to trigger email API:', err)
+    // Don't fail the cancellation if email fails
+  })
 
   revalidatePath('/classes')
   revalidatePath('/dashboard')
