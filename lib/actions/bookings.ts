@@ -50,12 +50,22 @@ export async function getUserBookings() {
     `)
     .eq('user_id', user.id)
     .eq('status', 'confirmed')
-    .gte('classes.date_time', new Date().toISOString())
     .order('created_at', { ascending: false })
 
   if (error) return []
-  // Filter out bookings where the class was deleted
-  return (data ?? []).filter((booking) => booking.class !== null)
+
+  const now = new Date().toISOString()
+  // Filter out bookings where:
+  // - class was deleted (null)
+  // - class is cancelled
+  // - class date is in the past
+  return (data ?? []).filter((booking) => {
+    if (!booking.class) return false
+    const classData = booking.class as any
+    if (classData.is_cancelled) return false
+    if (classData.date_time < now) return false
+    return true
+  })
 }
 
 /**
@@ -104,10 +114,9 @@ export async function getUpcomingBookingsCounts(userId?: string) {
 
   const { data: bookings } = await supabase
     .from('bookings')
-    .select('payment_method, class:classes(date_time)')
+    .select('payment_method, class:classes(date_time, is_cancelled)')
     .eq('user_id', targetUserId)
     .eq('status', 'confirmed')
-    .gte('classes.date_time', now)
 
   if (!bookings) return { onSite: 0, card: 0, trial: 0 }
 
@@ -118,7 +127,9 @@ export async function getUpcomingBookingsCounts(userId?: string) {
   }
 
   for (const booking of bookings) {
-    if (booking.class && (booking.class as unknown as { date_time: string }).date_time > now) {
+    const classData = booking.class as unknown as { date_time: string; is_cancelled: boolean } | null
+    // Only count if class exists, is not cancelled, and is in the future
+    if (classData && !classData.is_cancelled && classData.date_time > now) {
       if (booking.payment_method === 'on_site') counts.onSite++
       else if (booking.payment_method === 'card') counts.card++
       else if (booking.payment_method === 'trial') counts.trial++
@@ -207,15 +218,16 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
 
     const { data: upcomingBookings } = await supabase
       .from('bookings')
-      .select('id, class:classes(date_time)')
+      .select('id, class:classes(date_time, is_cancelled)')
       .eq('user_id', user.id)
       .eq('status', 'confirmed')
       .eq('payment_method', 'card')
 
     const now = new Date().toISOString()
-    const engagedCount = (upcomingBookings ?? []).filter(
-      (b) => b.class && (b.class as unknown as { date_time: string }).date_time > now
-    ).length
+    const engagedCount = (upcomingBookings ?? []).filter((b) => {
+      const classData = b.class as unknown as { date_time: string; is_cancelled: boolean } | null
+      return classData && !classData.is_cancelled && classData.date_time > now
+    }).length
 
     if (totalOnCards - engagedCount <= 0) {
       return { error: 'Aucune séance disponible sur vos cartes. Achetez une carte pour réserver.' }

@@ -61,6 +61,7 @@ export default function Navigation() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               className={`flex flex-col items-center gap-1 py-3 px-5 rounded-2xl transition-colors duration-200 ${
                 active ? 'text-terra' : 'text-stone-400 hover:text-stone-600'
               }`}

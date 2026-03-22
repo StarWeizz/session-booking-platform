@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Mon profil' }
+export const revalidate = 60
 
 export default async function ProfilePage() {
   const supabase = await createClient()

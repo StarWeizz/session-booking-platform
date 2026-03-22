@@ -20,15 +20,16 @@ export async function getUserCards() {
   // Get upcoming bookings paid by card to calculate engaged sessions
   const { data: upcomingBookings } = await supabase
     .from('bookings')
-    .select('id, class:classes(date_time), payment_method')
+    .select('id, class:classes(date_time, is_cancelled), payment_method')
     .eq('user_id', user.id)
     .eq('status', 'confirmed')
     .eq('payment_method', 'card')
 
   const now = new Date().toISOString()
-  const engagedCount = (upcomingBookings ?? []).filter(
-    (b) => b.class && (b.class as unknown as { date_time: string }).date_time > now
-  ).length
+  const engagedCount = (upcomingBookings ?? []).filter((b) => {
+    const classData = b.class as unknown as { date_time: string; is_cancelled: boolean } | null
+    return classData && !classData.is_cancelled && classData.date_time > now
+  }).length
 
   // Distribute engaged sessions across cards
   let remainingEngaged = engagedCount
