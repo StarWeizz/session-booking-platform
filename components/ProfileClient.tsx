@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { deleteAccount } from '@/lib/actions/auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import InvoicesList from '@/components/InvoicesList'
+import type { InvoiceData } from '@/lib/actions/payments'
 
 interface ProfileClientProps {
   profile: {
@@ -13,10 +15,14 @@ interface ProfileClientProps {
     phone: string | null
     created_at: string
   }
+  invoices: InvoiceData[]
 }
 
-export default function ProfileClient({ profile }: ProfileClientProps) {
+type Tab = 'profile' | 'invoices'
+
+export default function ProfileClient({ profile, invoices }: ProfileClientProps) {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<Tab>('profile')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
@@ -63,8 +69,42 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
         </p>
       </div>
 
-      {/* Profile info */}
-      <div className="card mb-6 animate-slide-up animate-stagger-1">
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6 animate-slide-up">
+        <button
+          onClick={() => setActiveTab('profile')}
+          className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+            activeTab === 'profile'
+              ? 'bg-terra text-white shadow-warm-md'
+              : 'bg-white text-stone-500 hover:bg-stone-50'
+          }`}
+        >
+          Profil
+        </button>
+        <button
+          onClick={() => setActiveTab('invoices')}
+          className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+            activeTab === 'invoices'
+              ? 'bg-terra text-white shadow-warm-md'
+              : 'bg-white text-stone-500 hover:bg-stone-50'
+          }`}
+        >
+          Factures
+          {invoices.length > 0 && (
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+              activeTab === 'invoices' ? 'bg-white/20' : 'bg-stone-100'
+            }`}>
+              {invoices.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Profile tab content */}
+      {activeTab === 'profile' && (
+        <>
+          {/* Profile info */}
+          <div className="card mb-6 animate-slide-up animate-stagger-1">
         <h2 className="text-sm font-medium text-stone-500 uppercase tracking-wide mb-4">
           Informations
         </h2>
@@ -125,21 +165,33 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
         </div>
       </div>
 
-      {/* Danger zone */}
-      <div className="card border-red-200 bg-red-50 animate-slide-up animate-stagger-3">
-        <h2 className="text-sm font-medium text-red-700 uppercase tracking-wide mb-3">
-          Zone dangereuse
-        </h2>
-        <p className="text-sm text-stone-600 mb-4">
-          La suppression de votre compte est définitive et irréversible. Toutes vos données seront supprimées conformément au RGPD.
-        </p>
-        <button
-          onClick={() => setShowDeleteModal(true)}
-          className="btn-secondary !bg-red-100 !text-red-700 !border-red-200 hover:!bg-red-200 w-full"
-        >
-          Supprimer mon compte
-        </button>
-      </div>
+          {/* Danger zone */}
+          <div className="card border-red-200 bg-red-50 animate-slide-up animate-stagger-3">
+            <h2 className="text-sm font-medium text-red-700 uppercase tracking-wide mb-3">
+              Zone dangereuse
+            </h2>
+            <p className="text-sm text-stone-600 mb-4">
+              La suppression de votre compte est définitive et irréversible. Toutes vos données seront supprimées conformément au RGPD.
+            </p>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="btn-secondary !bg-red-100 !text-red-700 !border-red-200 hover:!bg-red-200 w-full"
+            >
+              Supprimer mon compte
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Invoices tab content */}
+      {activeTab === 'invoices' && (
+        <div className="card animate-slide-up animate-stagger-1">
+          <h2 className="text-sm font-medium text-stone-500 uppercase tracking-wide mb-4">
+            Mes factures
+          </h2>
+          <InvoicesList invoices={invoices} />
+        </div>
+      )}
 
       {/* Delete confirmation modal */}
       {showDeleteModal && (

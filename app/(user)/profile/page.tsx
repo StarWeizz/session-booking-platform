@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import ProfileClient from '@/components/ProfileClient'
+import { getUserInvoices } from '@/lib/actions/payments'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 
@@ -14,11 +15,15 @@ export default async function ProfilePage() {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const [profile, invoices] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => data),
+    getUserInvoices(),
+  ])
 
   return (
     <ProfileClient
@@ -29,6 +34,7 @@ export default async function ProfilePage() {
         phone: profile?.phone ?? null,
         created_at: profile?.created_at ?? user.created_at,
       }}
+      invoices={invoices}
     />
   )
 }
