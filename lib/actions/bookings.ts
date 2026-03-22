@@ -54,7 +54,8 @@ export async function getUserBookings() {
     .order('created_at', { ascending: false })
 
   if (error) return []
-  return data ?? []
+  // Filter out bookings where the class was deleted
+  return (data ?? []).filter((booking) => booking.class !== null)
 }
 
 /**

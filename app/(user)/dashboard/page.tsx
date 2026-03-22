@@ -18,7 +18,7 @@ export default async function DashboardPage() {
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'vous'
   const upcomingBookings = bookings.filter(
-    (b) => new Date(b.class.date_time) > new Date()
+    (b) => b.class && new Date(b.class.date_time) > new Date()
   )
 
   return (
