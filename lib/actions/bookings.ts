@@ -156,13 +156,18 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
   // Check if user has already cancelled this class - prevent re-booking
   const { data: existingBooking } = await supabase
     .from('bookings')
-    .select('status')
+    .select('status, payment_method')
     .eq('user_id', user.id)
     .eq('class_id', classId)
     .single()
 
   if (existingBooking?.status === 'cancelled') {
-    return { error: 'Vous avez déjà annulé ce cours. Vous ne pouvez pas le réserver à nouveau.' }
+    const wasTrial = existingBooking.payment_method === 'trial'
+    return {
+      error: wasTrial
+        ? 'Vous avez déjà annulé votre séance d\'essai gratuite pour ce cours. Vous ne pouvez pas la réserver à nouveau.'
+        : 'Vous avez déjà annulé ce cours. Vous ne pouvez pas le réserver à nouveau.'
+    }
   }
 
   // Validate trial eligibility if trial payment method

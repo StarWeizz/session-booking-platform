@@ -26,6 +26,7 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
   const isFull = spotsLeft <= 0
   const hasBooking = !!yogaClass.user_booking && yogaClass.user_booking.status === 'confirmed'
   const isWaitlisted = yogaClass.user_booking?.status === 'waitlist'
+  const isCancelled = yogaClass.user_booking?.status === 'cancelled'
   const isPast = date < new Date()
 
   // Check booking limits
@@ -96,7 +97,19 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
           {result.error}
         </div>
       )}
-      {!hasBooking && !isWaitlisted && !isPast && (
+      {isCancelled && !isPast && (
+        <div className="text-sm text-stone-600 bg-stone-50 rounded-xl px-3 py-2 mb-3 flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+          {yogaClass.user_booking?.payment_method === 'trial'
+            ? 'Séance d\'essai annulée - Vous ne pouvez pas réserver à nouveau ce cours'
+            : 'Réservation annulée - Vous ne pouvez pas réserver à nouveau ce cours'}
+        </div>
+      )}
+      {!hasBooking && !isWaitlisted && !isCancelled && !isPast && (
         <>
           {onSiteLimit && (
             <div className="text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mb-3">
@@ -128,7 +141,7 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
         </div>
       )}
 
-      {!yogaClass.is_cancelled && !isPast && (
+      {!yogaClass.is_cancelled && !isPast && !isCancelled && (
         <>
           {hasBooking ? (
             <>
