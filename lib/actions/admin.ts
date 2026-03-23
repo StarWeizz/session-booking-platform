@@ -84,6 +84,8 @@ export async function confirmAttendance({
   })
 
   revalidatePath(`/admin/attendance/${classId}`)
+  revalidatePath('/admin/clients')
+  revalidatePath('/admin/cards')
   return { success: true }
 }
 

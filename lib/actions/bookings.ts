@@ -268,6 +268,7 @@ export async function bookClass(classId: string, paymentMethod: 'card' | 'on_sit
 
   revalidatePath('/classes')
   revalidatePath('/dashboard')
+  revalidatePath('/admin/clients')
 
   if (newStatus === 'waitlist') return { waitlist: true }
   return { success: true }
@@ -396,5 +397,7 @@ export async function cancelBooking(bookingId: string) {
 
   revalidatePath('/classes')
   revalidatePath('/dashboard')
+  revalidatePath('/admin/clients')
+  revalidatePath('/admin/cards')
   return { success: true, sessionLost }
 }

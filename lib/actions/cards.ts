@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
 import type { CardType } from '@/types'
 
 export async function getUserCards() {
@@ -93,6 +94,9 @@ export async function createCardManually({
   })
 
   if (error) return { error: 'Impossible de créer la carte' }
+
+  revalidatePath('/admin/clients')
+  revalidatePath('/admin/cards')
   return { success: true }
 }
 
@@ -111,6 +115,9 @@ export async function updateCardSessions({
     .eq('id', cardId)
 
   if (error) return { error: 'Impossible de modifier la carte' }
+
+  revalidatePath('/admin/clients')
+  revalidatePath('/admin/cards')
   return { success: true }
 }
 

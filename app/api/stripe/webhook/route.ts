@@ -1,6 +1,7 @@
 import { stripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/server'
 import { validateCardPurchase } from '@/lib/actions/cards'
+import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import type { CardType } from '@/types'
@@ -66,6 +67,12 @@ export async function POST(request: Request) {
       status: 'completed',
       card_type: cardType,
     })
+
+    // Revalidate admin pages to reflect new card
+    revalidatePath('/admin/clients')
+    revalidatePath('/admin/cards')
+    revalidatePath('/dashboard')
+    revalidatePath('/cards')
   }
 
   return NextResponse.json({ received: true })
