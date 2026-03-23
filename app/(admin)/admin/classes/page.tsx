@@ -1,5 +1,6 @@
 import ClassStatistics from '@/components/admin/ClassStatistics'
 import ClassesClient from './ClassesClient'
+import { getClasses, getClassesStats } from '@/lib/data/classes'
 
 interface PageProps {
   searchParams: Promise<{
@@ -18,30 +19,19 @@ export default async function AdminClassesPage({ searchParams }: PageProps) {
   const page = parseInt(params.page || '1')
   const limit = parseInt(params.limit || '25')
 
-  // Build query string for API
-  const queryParams = new URLSearchParams()
-  queryParams.set('page', page.toString())
-  queryParams.set('limit', limit.toString())
-  if (params.search) queryParams.set('search', params.search)
-  if (params.status) queryParams.set('status', params.status)
-  if (params.occupancy) queryParams.set('occupancy', params.occupancy)
-  if (params.dateFrom) queryParams.set('dateFrom', params.dateFrom)
-  if (params.dateTo) queryParams.set('dateTo', params.dateTo)
-
-  // Fetch data server-side
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
-  const [classesResponse, statsResponse] = await Promise.all([
-    fetch(`${baseUrl}/api/admin/classes?${queryParams.toString()}`, {
-      cache: 'no-store'
+  // Fetch data directly from server functions
+  const [classesData, stats] = await Promise.all([
+    getClasses({
+      page,
+      limit,
+      search: params.search,
+      status: params.status as 'upcoming' | 'past' | 'cancelled' | 'all' | undefined,
+      occupancy: params.occupancy as 'full' | 'available' | 'all' | undefined,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo
     }),
-    fetch(`${baseUrl}/api/admin/classes/stats`, {
-      cache: 'no-store'
-    })
+    getClassesStats()
   ])
-
-  const classesData = await classesResponse.json()
-  const stats = await statsResponse.json()
 
   return (
     <div>

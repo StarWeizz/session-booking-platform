@@ -1,5 +1,6 @@
 import CardStatistics from '@/components/admin/CardStatistics'
 import CardsClient from './CardsClient'
+import { getCards, getCardsStats } from '@/lib/data/cards'
 
 interface PageProps {
   searchParams: Promise<{
@@ -18,30 +19,19 @@ export default async function AdminCardsPage({ searchParams }: PageProps) {
   const page = parseInt(params.page || '1')
   const limit = parseInt(params.limit || '25')
 
-  // Build query string for API
-  const queryParams = new URLSearchParams()
-  if (params.page) queryParams.set('page', params.page)
-  if (params.limit) queryParams.set('limit', params.limit)
-  if (params.search) queryParams.set('search', params.search)
-  if (params.status) queryParams.set('status', params.status)
-  if (params.cardType) queryParams.set('cardType', params.cardType)
-  if (params.dateFrom) queryParams.set('dateFrom', params.dateFrom)
-  if (params.dateTo) queryParams.set('dateTo', params.dateTo)
-
-  // Fetch data server-side
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
-  const [cardsResponse, statsResponse] = await Promise.all([
-    fetch(`${baseUrl}/api/admin/cards?${queryParams.toString()}`, {
-      cache: 'no-store'
+  // Fetch data directly from server functions
+  const [cardsData, stats] = await Promise.all([
+    getCards({
+      page,
+      limit,
+      search: params.search,
+      status: params.status as 'active' | 'inactive' | 'all' | undefined,
+      cardType: params.cardType,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo
     }),
-    fetch(`${baseUrl}/api/admin/cards/stats`, {
-      cache: 'no-store'
-    })
+    getCardsStats()
   ])
-
-  const cardsData = await cardsResponse.json()
-  const stats = await statsResponse.json()
 
   return (
     <div>
