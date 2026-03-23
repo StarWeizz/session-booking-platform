@@ -7,6 +7,9 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Admin — Dashboard' }
 
+// Revalidate this page every 30 seconds
+export const revalidate = 30
+
 export default async function AdminDashboardPage() {
   const [stats, classes] = await Promise.all([
     getAttendanceStats(),

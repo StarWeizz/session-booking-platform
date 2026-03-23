@@ -2,6 +2,9 @@ import ClassStatistics from '@/components/admin/ClassStatistics'
 import ClassesClient from './ClassesClient'
 import { getClasses, getClassesStats } from '@/lib/data/classes'
 
+// Revalidate this page every 30 seconds
+export const revalidate = 30
+
 interface PageProps {
   searchParams: Promise<{
     page?: string

@@ -2,6 +2,9 @@ import CardStatistics from '@/components/admin/CardStatistics'
 import CardsClient from './CardsClient'
 import { getCards, getCardsStats } from '@/lib/data/cards'
 
+// Revalidate this page every 30 seconds
+export const revalidate = 30
+
 interface PageProps {
   searchParams: Promise<{
     page?: string

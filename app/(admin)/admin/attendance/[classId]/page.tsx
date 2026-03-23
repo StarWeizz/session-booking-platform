@@ -8,6 +8,9 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Admin — Présences' }
 
+// Revalidate this page every 30 seconds
+export const revalidate = 30
+
 interface Booking {
   id: string
   status: string

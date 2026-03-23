@@ -6,6 +6,9 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Admin — Clients' }
 
+// Revalidate this page every 30 seconds
+export const revalidate = 30
+
 interface PageProps {
   searchParams: Promise<{
     page?: string
