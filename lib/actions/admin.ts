@@ -3,24 +3,54 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function getAllClients() {
-  const supabase = await createClient()
+interface GetAllClientsParams {
+  page?: number
+  limit?: number
+  search?: string
+  status?: 'active' | 'inactive' | 'all'
+  sortBy?: 'created_at' | 'booking_count' | 'total_remaining'
+  sortOrder?: 'asc' | 'desc'
+}
 
-  const { data: profiles } = await supabase
+export async function getAllClients(params: GetAllClientsParams = {}) {
+  const supabase = await createClient()
+  const {
+    page = 1,
+    limit = 1000, // Default to large number for backward compatibility
+    search = '',
+    status = 'all',
+    sortBy = 'created_at',
+    sortOrder = 'desc'
+  } = params
+
+  let query = supabase
     .from('profiles_with_email')
     .select(`
       *,
       bookings(id, status, class:classes(date_time, is_cancelled), payment_method),
       session_cards(id, remaining_sessions, total_sessions, expiry_date, created_at)
-    `)
+    `, { count: 'exact' })
     .eq('role', 'user')
-    .order('created_at', { ascending: false })
 
-  if (!profiles) return []
+  // Filter by search (name or email)
+  if (search) {
+    query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`)
+  }
+
+  // Apply sorting
+  const ascending = sortOrder === 'asc'
+  if (sortBy === 'created_at') {
+    query = query.order('created_at', { ascending })
+  }
+
+  const { data: profiles, count: totalCount } = await query
+
+  if (!profiles) return { clients: [], totalCount: 0 }
 
   const now = new Date().toISOString()
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-  return profiles.map((p) => {
+  const clients = profiles.map((p) => {
     const bookings = p.bookings as Array<{
       id: string
       status: string
@@ -57,13 +87,61 @@ export async function getAllClients() {
       }
     })
 
+    const activeCards = cardsWithEngaged.filter((c) => {
+      const isNotExpired = !c.expiry_date || new Date(c.expiry_date) > new Date()
+      return c.remaining_sessions > 0 && isNotExpired
+    }).length
+
+    // Get most recent booking date
+    const lastBookingDate = bookings
+      .filter((b) => b.status === 'confirmed' && b.class?.date_time)
+      .map((b) => b.class!.date_time)
+      .sort()
+      .reverse()[0] || null
+
     return {
       ...p,
       booking_count: bookings.filter((b) => b.status === 'confirmed').length,
       total_remaining: cardsWithEngaged.reduce((sum, c) => sum + c.remaining_sessions, 0),
-      active_cards: cardsWithEngaged.filter((c) => c.remaining_sessions > 0).length,
+      active_cards: activeCards,
+      last_booking_date: lastBookingDate
     }
   })
+
+  // Filter by status
+  let filteredClients = clients
+  if (status === 'active') {
+    filteredClients = clients.filter(c => {
+      const hasActiveCards = c.active_cards > 0
+      const hasRecentBooking = c.last_booking_date && c.last_booking_date > thirtyDaysAgo
+      return hasActiveCards || hasRecentBooking
+    })
+  } else if (status === 'inactive') {
+    filteredClients = clients.filter(c => {
+      const hasActiveCards = c.active_cards > 0
+      const hasRecentBooking = c.last_booking_date && c.last_booking_date > thirtyDaysAgo
+      return !hasActiveCards && !hasRecentBooking
+    })
+  }
+
+  // Sort by booking_count or total_remaining if specified
+  if (sortBy === 'booking_count' || sortBy === 'total_remaining') {
+    filteredClients.sort((a, b) => {
+      const valA = a[sortBy]
+      const valB = b[sortBy]
+      return sortOrder === 'asc' ? valA - valB : valB - valA
+    })
+  }
+
+  // Apply pagination
+  const from = (page - 1) * limit
+  const to = from + limit
+  const paginatedClients = filteredClients.slice(from, to)
+
+  return {
+    clients: paginatedClients,
+    totalCount: filteredClients.length
+  }
 }
 
 export async function confirmAttendance({
