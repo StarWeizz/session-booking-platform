@@ -22,16 +22,36 @@ export default function AdminCardsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingCard, setEditingCard] = useState<string | null>(null)
   const [editSessions, setEditSessions] = useState(0)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [showDropdown, setShowDropdown] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/cards').then((r) => r.json()).then(setCards).catch(console.error)
     fetch('/api/admin/clients').then((r) => r.json()).then(setClients).catch(console.error)
   }, [])
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (!target.closest('.client-search-container')) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    if (!selectedClient) {
+      alert('Veuillez sélectionner un client')
+      return
+    }
+
     const formData = new FormData(e.currentTarget)
-    const userId = formData.get('userId') as string
+    const userId = selectedClient.id
     const cardType = formData.get('cardType') as '1' | '10' | '20'
     const expiryDate = formData.get('expiryDate') as string || undefined
 
@@ -60,9 +80,22 @@ export default function AdminCardsPage() {
     })
     if (result.success) {
       setShowForm(false)
+      setSearchTerm('')
+      setSelectedClient(null)
       fetch('/api/admin/cards').then((r) => r.json()).then(setCards)
     }
   }
+
+  const allFilteredClients = clients.filter((c) => {
+    if (!searchTerm) return true
+    const searchLower = searchTerm.toLowerCase()
+    const fullName = (c.full_name ?? '').toLowerCase()
+    const email = (c.email ?? '').toLowerCase()
+    return fullName.includes(searchLower) || email.includes(searchLower)
+  })
+
+  const filteredClients = allFilteredClients.slice(0, 50) // Limit to 50 results for performance
+  const hasMoreResults = allFilteredClients.length > 50
 
   async function handleUpdateSessions(cardId: string) {
     await updateCardSessions({ cardId, remainingSessions: editSessions })
@@ -77,7 +110,17 @@ export default function AdminCardsPage() {
           <h1 className="text-display text-3xl font-semibold text-stone-900 mb-1">Cartes de séances</h1>
           <p className="text-stone-500 text-sm">{cards.length} carte{cards.length > 1 ? 's' : ''} au total</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary !w-auto !py-2.5 !px-5">
+        <button
+          onClick={() => {
+            setShowForm(!showForm)
+            if (!showForm) {
+              setSearchTerm('')
+              setSelectedClient(null)
+              setShowDropdown(false)
+            }
+          }}
+          className="btn-primary !w-auto !py-2.5 !px-5"
+        >
           + Ajouter manuellement
         </button>
       </div>
@@ -86,16 +129,57 @@ export default function AdminCardsPage() {
         <div className="card mb-6 border-terra/20">
           <h2 className="font-semibold text-stone-900 mb-4">Ajouter une carte manuellement</h2>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+            <div className="relative client-search-container">
               <label className="label">Client</label>
-              <select name="userId" className="input" required>
-                <option value="">Choisir un client…</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.full_name ?? '(sans nom)'}{c.email ? ` — ${c.email}` : ''}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="text"
+                value={selectedClient ? `${selectedClient.full_name ?? '(sans nom)'}${selectedClient.email ? ` — ${selectedClient.email}` : ''}` : searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setSelectedClient(null)
+                  setShowDropdown(true)
+                }}
+                onFocus={() => setShowDropdown(true)}
+                placeholder="Rechercher un client..."
+                className="input"
+                required
+              />
+              {showDropdown && !selectedClient && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-stone-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filteredClients.length > 0 ? (
+                    <>
+                      {filteredClients.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedClient(c)
+                            setSearchTerm('')
+                            setShowDropdown(false)
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors border-b border-stone-50 last:border-0"
+                        >
+                          <div className="font-medium text-stone-900">
+                            {c.full_name ?? '(sans nom)'}
+                          </div>
+                          {c.email && (
+                            <div className="text-xs text-stone-400">{c.email}</div>
+                          )}
+                        </button>
+                      ))}
+                      {hasMoreResults && (
+                        <div className="px-4 py-2 text-xs text-stone-400 text-center bg-stone-50 border-t border-stone-100">
+                          + {allFilteredClients.length - 50} autres résultats — Affinez votre recherche
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-stone-400 text-center">
+                      {searchTerm ? `Aucun client trouvé pour "${searchTerm}"` : 'Aucun client'}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="label">Type de carte</label>
@@ -107,11 +191,29 @@ export default function AdminCardsPage() {
             </div>
             <div>
               <label className="label">Date d'expiration (optionnel)</label>
-              <input name="expiryDate" type="date" className="input" />
+              <div className="relative cursor-pointer">
+                <input
+                  name="expiryDate"
+                  type="date"
+                  className="input cursor-pointer w-full"
+                  style={{ colorScheme: 'light' }}
+                />
+              </div>
             </div>
             <div className="md:col-span-3 flex gap-3">
               <button type="submit" className="btn-primary !w-auto !py-2.5 !px-6">Créer la carte</button>
-              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary !w-auto !py-2.5 !px-5">Annuler</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForm(false)
+                  setSearchTerm('')
+                  setSelectedClient(null)
+                  setShowDropdown(false)
+                }}
+                className="btn-secondary !w-auto !py-2.5 !px-5"
+              >
+                Annuler
+              </button>
             </div>
           </form>
         </div>

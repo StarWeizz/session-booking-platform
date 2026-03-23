@@ -86,7 +86,7 @@ export default function ClassCard({ yogaClass, totalSessions, isTrialEligible = 
             <span className="badge-neutral">Complet</span>
           ) : (
             <span className={`badge-sage`}>
-              {spotsLeft} place{spotsLeft > 1 ? 's' : ''}
+              {spotsLeft} place{spotsLeft > 1 ? 's' : ''} restante{spotsLeft > 1 ? 's' : ''}
             </span>
           )}
         </div>
