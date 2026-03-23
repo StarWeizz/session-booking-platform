@@ -10,23 +10,60 @@ export async function getAllClients() {
     .from('profiles_with_email')
     .select(`
       *,
-      bookings(id, status),
-      session_cards(id, remaining_sessions, total_sessions, expiry_date)
+      bookings(id, status, class:classes(date_time, is_cancelled), payment_method),
+      session_cards(id, remaining_sessions, total_sessions, expiry_date, created_at)
     `)
     .eq('role', 'user')
     .order('created_at', { ascending: false })
 
   if (!profiles) return []
 
-  return profiles.map((p) => ({
-    ...p,
-    booking_count: (p.bookings as Array<{id: string, status: string}>)
-      .filter((b) => b.status === 'confirmed').length,
-    total_remaining: (p.session_cards as Array<{remaining_sessions: number}>)
-      .reduce((sum, c) => sum + c.remaining_sessions, 0),
-    active_cards: (p.session_cards as Array<{remaining_sessions: number}>)
-      .filter((c) => c.remaining_sessions > 0).length,
-  }))
+  const now = new Date().toISOString()
+
+  return profiles.map((p) => {
+    const bookings = p.bookings as Array<{
+      id: string
+      status: string
+      class?: { date_time: string; is_cancelled: boolean } | null
+      payment_method?: string
+    }>
+
+    const cards = p.session_cards as Array<{
+      id: string
+      remaining_sessions: number
+      total_sessions: number
+      expiry_date: string | null
+      created_at: string
+    }>
+
+    // Count engaged sessions (upcoming confirmed bookings paid by card)
+    const engagedCount = bookings.filter((b) => {
+      if (b.status !== 'confirmed' || b.payment_method !== 'card') return false
+      const classData = b.class
+      return classData && !classData.is_cancelled && classData.date_time > now
+    }).length
+
+    // Distribute engaged sessions across cards (oldest first)
+    const sortedCards = [...cards].sort((a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+    let remainingEngaged = engagedCount
+    const cardsWithEngaged = sortedCards.map((card) => {
+      const deducted = Math.min(card.remaining_sessions, remainingEngaged)
+      remainingEngaged -= deducted
+      return {
+        ...card,
+        remaining_sessions: card.remaining_sessions - deducted
+      }
+    })
+
+    return {
+      ...p,
+      booking_count: bookings.filter((b) => b.status === 'confirmed').length,
+      total_remaining: cardsWithEngaged.reduce((sum, c) => sum + c.remaining_sessions, 0),
+      active_cards: cardsWithEngaged.filter((c) => c.remaining_sessions > 0).length,
+    }
+  })
 }
 
 export async function confirmAttendance({
